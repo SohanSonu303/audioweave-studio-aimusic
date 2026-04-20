@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AudioWeave Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --card: #161616;
+    --card-hi: #1d1d1d;
+    --border: rgba(255,255,255,0.07);
+    --border-md: rgba(255,255,255,0.11);
+    --text: #eeeeee;
+    --text-2: #888888;
+    --text-3: #505050;
+    --warm: rgba(255,180,80,0.08);
+    --warm-border: rgba(255,180,80,0.15);
+    --accent: #e8a055;
+    --accent-dim: rgba(232,160,85,0.18);
+    --accent-glow: rgba(232,160,85,0.06);
+    --red: #e06060;
+    --green: #60c090;
+    --blue: #6090e0;
+    --purple: #a070e0;
+    --shadow-card: 0 0 0 0.5px rgba(255,255,255,0.05) inset, 0 1px 2px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.25);
+    --shadow-pill: 0 0 0 1px rgba(255,255,255,0.1), 0 2px 8px rgba(0,0,0,0.4);
+    --radius-pill: 9999px;
+    --radius-card: 16px;
+    --radius-sm: 8px;
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --sidebar-w: 200px;
+  }
+  html, body, #root { height: 100%; overflow: hidden; }
+  body { font-family: var(--font-body); background: var(--bg); color: var(--text); font-size: 14px; -webkit-font-smoothing: antialiased; }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  input, textarea { font-family: inherit; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+  /* Waveform animation */
+  @keyframes waveform-pulse {
+    0%, 100% { opacity: 0.4; transform: scaleY(1); }
+    50% { opacity: 1; transform: scaleY(1.4); }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes progress-glow {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, var(--card) 25%, var(--card-hi) 50%, var(--card) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.8s infinite;
+    border-radius: 4px;
+  }
+  .fade-in { animation: fadeIn 0.35s ease both; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ─── ICONS ────────────────────────────────────────────────────────────────────
+const Icon = ({ d, size = 16, stroke = 1.5, fill = "none", color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round">
+    {Array.isArray(d) ? d.map((p, i) => <path key={i} d={p} />) : <path d={d} />}
+  </svg>
+);
+
+const icons = {
+  home: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z",
+  music: ["M9 18V5l12-2v13", "M6 21a3 3 0 100-6 3 3 0 000 6z", "M18 19a3 3 0 100-6 3 3 0 000 6z"],
+  library: ["M3 6h18", "M3 12h18", "M3 18h18"],
+  album: ["M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"],
+  stem: ["M12 2v20", "M2 12h20", "M4.93 4.93l14.14 14.14", "M19.07 4.93L4.93 19.07"],
+  waveform: "M2 12h2l3-8 3 16 3-12 3 8 2-4h4",
+  play: "M5 3l14 9-14 9V3z",
+  pause: ["M6 4h4v16H6z", "M14 4h4v16h-4z"],
+  stop: "M4 4h16v16H4z",
+  download: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3",
+  heart: "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z",
+  upload: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12",
+  sparkle: ["M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"],
+  close: "M18 6L6 18M6 6l12 12",
+  chevronR: "M9 18l6-6-6-6",
+  chevronD: "M6 9l6 6 6-6",
+  plus: "M12 5v14M5 12h14",
+  settings: ["M12 15a3 3 0 100-6 3 3 0 000 6z", "M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"],
+  scissors: ["M6 3a3 3 0 100 6 3 3 0 000-6z", "M6 15a3 3 0 100 6 3 3 0 000-6z", "M20 4L8.12 15.88", "M14.47 14.48L20 20", "M8.12 8.12L12 12"],
+  search: ["M11 17.25a6.25 6.25 0 110-12.5 6.25 6.25 0 010 12.5z", "M16 16l4.5 4.5"],
+  sort: ["M4 6h16", "M4 12h10", "M4 18h4"],
+  filter: "M22 3H2l8 9.46V19l4 2v-8.54L22 3z",
+  mic: ["M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z", "M19 10v2a7 7 0 01-14 0v-2", "M12 19v4", "M8 23h8"],
+  layers: ["M12 2L2 7l10 5 10-5-10-5z", "M2 17l10 5 10-5", "M2 12l10 5 10-5"],
+  cpu: ["M9 3H5a2 2 0 00-2 2v4", "M15 3h4a2 2 0 012 2v4", "M9 21H5a2 2 0 01-2-2v-4", "M15 21h4a2 2 0 002-2v-4", "M9 9h6v6H9z"],
+  clock: ["M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z", "M12 6v6l4 2"],
+  star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z",
+  more: ["M12 13a1 1 0 100-2 1 1 0 000 2z", "M19 13a1 1 0 100-2 1 1 0 000 2z", "M5 13a1 1 0 100-2 1 1 0 000 2z"],
+  note: ["M9 18V5l12-2v13", "M6 21a3 3 0 100-6 3 3 0 000 6z", "M18 19a3 3 0 100-6 3 3 0 000 6z"],
+  bolt: "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
+  film: ["M2 8h20", "M2 16h20", "M6 2v4", "M10 2v4", "M14 2v4", "M18 2v4", "M6 18v4", "M10 18v4", "M14 18v4", "M18 18v4", "M2 4h20v16H2z"],
+};
+
+// ─── WAVEFORM SVG ─────────────────────────────────────────────────────────────
+function Waveform({ bars = 60, playing = false, color = "var(--accent)", dim = false }) {
+  const seed = useRef(Math.random() * 1000);
+  const heights = useRef(Array.from({ length: bars }, (_, i) => {
+    const x = (i / bars) * Math.PI * 6 + seed.current;
+    return 0.15 + Math.abs(Math.sin(x) * Math.cos(x * 0.7) * 0.7 + Math.sin(x * 2.3) * 0.3);
+  }));
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 2, height: '100%', width: '100%' }}>
+      {heights.current.map((h, i) => (
+        <div key={i} style={{
+          flex: 1, height: `${h * 100}%`, minHeight: 2,
+          background: dim ? 'rgba(255,255,255,0.15)' : color,
+          borderRadius: 2,
+          opacity: dim ? 0.5 : 0.85,
+          animation: playing ? `waveform-pulse ${0.5 + (i % 7) * 0.08}s ease-in-out infinite` : 'none',
+          animationDelay: `${(i % 5) * 0.06}s`,
+          transition: 'height 0.3s ease',
+        }} />
+      ))}
+    </div>
+  );
+}
+
+// ─── PILL BUTTON ──────────────────────────────────────────────────────────────
+function Pill({ children, active, onClick, style, size = 'sm' }) {
+  const pad = size === 'lg' ? '10px 18px' : '5px 12px';
+  return (
+    <button onClick={onClick} style={{
+      padding: pad, borderRadius: 'var(--radius-pill)', fontSize: size === 'lg' ? 13 : 12,
+      fontWeight: 500, letterSpacing: '0.01em', cursor: 'pointer', transition: 'all 0.15s',
+      background: active ? 'rgba(232,160,85,0.2)' : 'rgba(255,255,255,0.05)',
+      color: active ? 'var(--accent)' : 'var(--text-2)',
+      border: active ? '1px solid rgba(232,160,85,0.35)' : '1px solid var(--border)',
+      boxShadow: active ? '0 0 12px rgba(232,160,85,0.12)' : 'none',
+      ...style,
+    }}>{children}</button>
+  );
+}
+
+// ─── DARK CARD ────────────────────────────────────────────────────────────────
+function Card({ children, style, hover = false }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <div onMouseEnter={() => hover && setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{
+        background: hov ? 'var(--card-hi)' : 'var(--card)',
+        borderRadius: 'var(--radius-card)',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--shadow-card)',
+        transition: 'all 0.2s',
+        ...style,
+      }}>{children}</div>
+  );
+}
+
+// ─── GENERATE PAGE ────────────────────────────────────────────────────────────
+const STYLE_TAGS = {
+  Song: ['Pop', 'R&B', 'Hip-Hop', 'Ballad', 'Country', 'Folk', 'Indie', 'Soul', 'Jazz', 'Blues', 'Rock', 'Punk', 'Metal', 'Gospel', 'Latin', 'K-Pop'],
+  Music: ['Cinematic', 'Orchestral', 'Ambient', 'Lo-Fi', 'Electronic', 'House', 'Techno', 'Drum & Bass', 'Synthwave', 'Classical', 'Jazz', 'Trap', 'Future Bass', 'Chillout'],
+  'Sound FX': ['Nature', 'Urban', 'Sci-Fi', 'Horror', 'Comedy', 'Foley', 'Transitions', 'UI Sounds', 'Impact', 'Ambience', 'Mechanical', 'Organic'],
+};
+
+const HISTORY = [
+  { id: 1, prompt: 'Epic orchestral battle theme with dramatic brass', time: '2 min ago', done: true },
+  { id: 2, prompt: 'Lo-fi hip hop chill study beats', time: '14 min ago', done: true },
+  { id: 3, prompt: 'Dreamy ambient soundscape with synth pads', time: '1 hr ago', done: true },
+  { id: 4, prompt: 'Upbeat indie pop song about summer', time: '2 hr ago', done: true },
+];
+
+function GeneratePage() {
+  const [tab, setTab] = useState('Music');
+  const [prompt, setPrompt] = useState('');
+  const [includedStyles, setIncludedStyles] = useState(['Cinematic', 'Orchestral']);
+  const [excludedStyles, setExcludedStyles] = useState(['Electronic']);
+  const [generating, setGenerating] = useState(false);
+  const [generated, setGenerated] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [variations, setVariations] = useState(2);
+  const [historyTab, setHistoryTab] = useState('History');
+  const [lyrics, setLyrics] = useState('');
+  const textareaRef = useRef();
+  const [progress, setProgress] = useState(0);
+
+  const handleGenerate = () => {
+    if (!prompt.trim() && !lyrics.trim()) return;
+    setGenerating(true); setGenerated(false); setProgress(0);
+    const interval = setInterval(() => {
+      setProgress(p => { if (p >= 100) { clearInterval(interval); setGenerating(false); setGenerated(true); return 100; } return p + 2; });
+    }, 60);
+  };
+
+  const toggleStyle = (tag, list, setList) => {
+    setList(l => l.includes(tag) ? l.filter(t => t !== tag) : [...l, tag]);
+  };
+
+  const styles = STYLE_TAGS[tab] || [];
+
+  return (
+    <div style={{ display: 'flex', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+      {/* Main area */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* Top bar */}
+        <div style={{ display: 'flex', alignItems: 'center', padding: '12px 24px', borderBottom: '1px solid var(--border)', gap: 16, flexShrink: 0 }}>
+          <span style={{ flex: 1, fontSize: 13, color: 'var(--text-2)' }}>Untitled</span>
+          <div style={{ display: 'flex', gap: 2, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 3 }}>
+            {['Song', 'Music', 'Sound FX'].map(t => (
+              <button key={t} onClick={() => setTab(t)} style={{
+                padding: '5px 14px', borderRadius: 6, fontSize: 12, fontWeight: 500,
+                background: tab === t ? 'var(--card-hi)' : 'transparent',
+                color: tab === t ? 'var(--text)' : 'var(--text-2)',
+                border: tab === t ? '1px solid var(--border-md)' : '1px solid transparent',
+                transition: 'all 0.15s', cursor: 'pointer',
+              }}>{t}</button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button style={{ padding: '6px 14px', borderRadius: 'var(--radius-pill)', fontSize: 12, fontWeight: 500, background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)', color: 'var(--text-2)' }}>
+              <Icon d={icons.bolt} size={12} /> &nbsp;Enhance
+            </button>
+          </div>
+        </div>
+
+        {/* Content — scrollable, flex column, prompt centered */}
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '20px max(24px, 4%) 24px', boxSizing: 'border-box', width: '100%' }}>
+
+          {/* Generated output / lyrics float at top */}
+          {(generating || generated || tab === 'Song') && (
+            <div style={{ marginBottom: 16 }}>
+              {tab === 'Song' && (
+                <Card style={{ marginBottom: 12, padding: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-3)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Lyrics</div>
+                  <textarea value={lyrics} onChange={e => setLyrics(e.target.value)} placeholder="Paste your lyrics here, or leave blank to let AI write them..." rows={5}
+                    style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', resize: 'none', color: 'var(--text)', fontSize: 14, lineHeight: 1.6, letterSpacing: '0.01em', fontFamily: 'inherit' }} />
+                </Card>
+              )}
+              {(generating || generated) && (
+                <Card style={{ overflow: 'hidden' }} className="fade-in">
+                  {generating ? (
+                    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 18, height: 18, border: '2px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                        <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Generating your {tab.toLowerCase()}…</span>
+                        <span style={{ fontSize: 11, color: 'var(--text-3)', marginLeft: 'auto' }}>{progress}%</span>
+                      </div>
+                      <div style={{ height: 4, background: 'var(--card-hi)', borderRadius: 4 }}>
+                        <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, var(--accent), rgba(232,160,85,0.6))', borderRadius: 4, transition: 'width 0.1s', boxShadow: '0 0 8px var(--accent)', animation: 'progress-glow 1.5s ease infinite' }} />
+                      </div>
+                      <div style={{ display: 'flex', gap: 12 }}>
+                        {[1, 2].map(v => (
+                          <div key={v} style={{ flex: 1, background: 'var(--card-hi)', borderRadius: 10, padding: '12px 14px', border: '1px solid var(--border)' }}>
+                            <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 6 }}>Generating variation {v}</div>
+                            <div style={{ height: 28 }}><Waveform bars={40} color="rgba(232,160,85,0.3)" dim /></div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ padding: 16 }}>
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        {[1, 2].map(v => (
+                          <div key={v} style={{ flex: 1, background: 'var(--card-hi)', borderRadius: 10, padding: '12px 14px', border: '1px solid var(--border)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                              <span style={{ fontSize: 11, color: 'var(--text-2)', fontWeight: 500 }}>Variation {v}</span>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <button onClick={() => setPlaying(!playing)} style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer' }}>
+                                  <Icon d={playing ? icons.pause[0] : icons.play} size={10} fill={playing ? 'none' : 'white'} color="white" />
+                                </button>
+                                <button style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
+                                  <Icon d={icons.download} size={10} color="var(--text-2)" />
+                                </button>
+                              </div>
+                            </div>
+                            <div style={{ height: 36 }}><Waveform bars={50} playing={playing && v === 1} color="var(--accent)" /></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: 'var(--text-3)' }}>
+                              <span>0:00</span><span>3:24</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Spacer — pushes prompt toward center when content is sparse */}
+          <div style={{ flex: 1 }} />
+
+          {/* Prompt bar — centered in the page, fullscreen-safe */}
+          <div style={{ maxWidth: 720, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+            <Card style={{ padding: '14px 18px', borderRadius: 16 }}>
+              <textarea ref={textareaRef} value={prompt} onChange={e => setPrompt(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleGenerate(); }}
+                placeholder={tab === 'Song' ? 'Describe your song — mood, theme, vocal style…' : tab === 'Music' ? 'Describe the music — genre, instruments, emotion, tempo…' : 'Describe the sound effect — nature, environment, action…'}
+                rows={2} style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', resize: 'none', color: 'var(--text)', fontSize: 14, lineHeight: 1.6, letterSpacing: '0.01em', fontFamily: 'inherit', marginBottom: 10 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.04)', borderRadius: 20, padding: '4px 10px', border: '1px solid var(--border)' }}>
+                  <Icon d={icons.cpu} size={12} color="var(--text-2)" />
+                  <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{variations}</span>
+                  <button onClick={() => setVariations(v => Math.max(1, v - 1))} style={{ color: 'var(--text-3)', fontSize: 14, lineHeight: 1, cursor: 'pointer' }}>−</button>
+                  <button onClick={() => setVariations(v => Math.min(4, v + 1))} style={{ color: 'var(--text-3)', fontSize: 14, lineHeight: 1, cursor: 'pointer' }}>+</button>
+                </div>
+                {tab === 'Song' && (
+                  <button style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, fontSize: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-2)' }}>
+                    <Icon d={icons.mic} size={12} /> No Finetune
+                  </button>
+                )}
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-3)' }}>⌘↵</span>
+                  <button onClick={handleGenerate} disabled={generating}
+                    style={{ padding: '8px 20px', borderRadius: 'var(--radius-pill)', fontSize: 13, fontWeight: 600, background: generating ? 'rgba(232,160,85,0.2)' : 'var(--accent)', color: generating ? 'var(--accent)' : '#000', border: 'none', cursor: generating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s' }}>
+                    {generating ? <><div style={{ width: 12, height: 12, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Generating</> : <><Icon d={icons.sparkle[0]} size={13} fill="currentColor" stroke="none" /> Generate</>}
+                  </button>
+                </div>
+              </div>
+            </Card>
+
+            {/* Include / Exclude — right below prompt */}
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, width: 64 }}>
+                  <div style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon d={icons.plus} size={8} color="var(--accent)" />
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-3)', letterSpacing: '0.07em', textTransform: 'uppercase' }}>Include</span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                  {styles.map(tag => (
+                    <Pill key={tag} active={includedStyles.includes(tag)} onClick={() => toggleStyle(tag, includedStyles, setIncludedStyles)}>{tag}</Pill>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, width: 64 }}>
+                  <div style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid rgba(224,96,96,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon d={icons.close} size={8} color="rgba(224,96,96,0.8)" />
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-3)', letterSpacing: '0.07em', textTransform: 'uppercase' }}>Exclude</span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                  {styles.slice(0, 8).map(tag => (
+                    <button key={tag} onClick={() => toggleStyle(tag, excludedStyles, setExcludedStyles)}
+                      style={{ padding: '5px 12px', borderRadius: 'var(--radius-pill)', fontSize: 12, fontWeight: 500, background: excludedStyles.includes(tag) ? 'rgba(224,96,96,0.13)' : 'rgba(255,255,255,0.04)', color: excludedStyles.includes(tag) ? 'rgba(224,96,96,0.9)' : 'var(--text-2)', border: excludedStyles.includes(tag) ? '1px solid rgba(224,96,96,0.28)' : '1px solid var(--border)', cursor: 'pointer', transition: 'all 0.15s' }}>{tag}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom breathing room */}
+          <div style={{ height: 20 }} />
+        </div>
+      </div>
+
+      {/* Right panel */}
+      <div style={{ width: 260, flexShrink: 0, borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          {['History', 'Favorites'].map(t => (
+            <button key={t} onClick={() => setHistoryTab(t)} style={{ flex: 1, padding: '12px 0', fontSize: 12, fontWeight: 500, color: historyTab === t ? 'var(--text)' : 'var(--text-2)', borderBottom: historyTab === t ? '1.5px solid var(--accent)' : '1.5px solid transparent', background: 'transparent', cursor: 'pointer', transition: 'all 0.15s' }}>{t}</button>
+          ))}
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {HISTORY.map((h, i) => (
+            <div key={h.id} className="fade-in" style={{ animationDelay: `${i * 0.06}s` }}>
+              <div style={{ fontSize: 10, color: 'var(--text-3)', marginBottom: 4 }}>{h.time}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 8, lineHeight: 1.4 }}>{h.prompt}</div>
+              {[1, 2].map(v => (
+                <div key={v} style={{ background: 'var(--card)', borderRadius: 10, padding: '10px 12px', marginBottom: 6, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--card-hi)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                    <Icon d={icons.play} size={8} fill="var(--text-2)" color="var(--text-2)" />
+                  </button>
+                  <div style={{ flex: 1, height: 22 }}><Waveform bars={30} dim /></div>
+                  <button style={{ flexShrink: 0, opacity: 0.4 }}><Icon d={icons.heart} size={12} /></button>
+                  <button style={{ flexShrink: 0, opacity: 0.4 }}><Icon d={icons.download} size={12} /></button>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── LIBRARY PAGE ─────────────────────────────────────────────────────────────
+const LIBRARY_ITEMS = [
+  { id: 1, title: 'Epic Battle Theme', type: 'Music', duration: '3:24', date: 'Apr 19', tags: ['Cinematic', 'Orchestral'], color: '#e8a055' },
+  { id: 2, title: 'Summer Vibes', type: 'Song', duration: '2:48', date: 'Apr 19', tags: ['Pop', 'Indie'], color: '#60c090' },
+  { id: 3, title: 'Late Night Study', type: 'Music', duration: '4:12', date: 'Apr 18', tags: ['Lo-Fi', 'Ambient'], color: '#6090e0' },
+  { id: 4, title: 'Rain Forest Ambience', type: 'Sound FX', duration: '5:00', date: 'Apr 18', tags: ['Nature', 'Ambience'], color: '#60c090' },
+  { id: 5, title: 'Neon City Nights', type: 'Music', duration: '3:56', date: 'Apr 17', tags: ['Synthwave', 'Electronic'], color: '#a070e0' },
+  { id: 6, title: 'Heartbreak Ballad', type: 'Song', duration: '3:08', date: 'Apr 17', tags: ['Ballad', 'Soul'], color: '#e06060' },
+  { id: 7, title: 'Corporate Background', type: 'Music', duration: '2:30', date: 'Apr 16', tags: ['Ambient', 'Chillout'], color: '#6090e0' },
+  { id: 8, title: 'Sci-Fi UI Sounds', type: 'Sound FX', duration: '0:03', date: 'Apr 16', tags: ['Sci-Fi', 'UI Sounds'], color: '#a070e0' },
+  { id: 9, title: 'Jazz Cafe Morning', type: 'Music', duration: '4:45', date: 'Apr 15', tags: ['Jazz', 'Classical'], color: '#e8a055' },
+];
+
+const TYPE_COLORS = { Music: 'var(--accent)', Song: 'var(--green)', 'Sound FX': 'var(--purple)' };
+
+const THUMB_GRADIENTS = [
+  'linear-gradient(135deg,#c8702a,#7b3fa0)',
+  'linear-gradient(135deg,#2a6ec8,#20a06a)',
+  'linear-gradient(135deg,#a02a5a,#c87820)',
+  'linear-gradient(135deg,#206090,#60a040)',
+  'linear-gradient(135deg,#7030c0,#3060c0)',
+  'linear-gradient(135deg,#c04040,#804090)',
+  'linear-gradient(135deg,#205060,#40a080)',
+  'linear-gradient(135deg,#805020,#206040)',
+  'linear-gradient(135deg,#602080,#c07030)',
+];
+
+function LibraryPage({ onNavigate }) {
+  const [filter, setFilter] = useState('All');
+  const [playing, setPlaying] = useState(null);
+  const [search, setSearch] = useState('');
+  const [tab, setTab] = useState('Generations');
+
+  const filtered = LIBRARY_ITEMS.filter(i =>
+    (filter === 'All' || i.type === filter) &&
+    (i.title.toLowerCase().includes(search.toLowerCase()) || i.tags.some(t => t.toLowerCase().includes(search.toLowerCase())))
+  );
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Header */}
+      <div style={{ padding: '14px 24px 0', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 28, letterSpacing: '-0.3px', color: 'var(--text)', flex: 1 }}>Library</h1>
+          {/* Search */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--card)', borderRadius: 'var(--radius-pill)', padding: '6px 14px', border: '1px solid var(--border)', width: 200 }}>
+            <Icon d={icons.search[0]} size={13} color="var(--text-3)" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"
+              style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 12, width: '100%', fontFamily: 'inherit' }} />
+          </div>
+          <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 'var(--radius-pill)', fontSize: 12, fontWeight: 500, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--text-2)', cursor: 'pointer' }}>
+            <Icon d={icons.filter} size={12} /> Filter
+          </button>
+          <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 'var(--radius-pill)', fontSize: 12, fontWeight: 500, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--text-2)', cursor: 'pointer' }}>
+            <Icon d={icons.sort} size={12} /> Sort
+          </button>
+        </div>
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 0 }}>
+          {['Generations', 'Saved', 'History'].map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{ padding: '8px 16px', fontSize: 13, fontWeight: 500, background: 'transparent', color: tab === t ? 'var(--text)' : 'var(--text-3)', border: 'none', borderBottom: tab === t ? '1.5px solid var(--accent)' : '1.5px solid transparent', cursor: 'pointer', transition: 'all 0.15s' }}>{t}</button>
+          ))}
+          {/* Type pills */}
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 5, alignItems: 'center', paddingBottom: 8 }}>
+            {['All', 'Song', 'Music', 'Sound FX'].map(f => (
+              <Pill key={f} active={filter === f} onClick={() => setFilter(f)}>{f}</Pill>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Track list — styled like the reference screenshot */}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {/* Column headers */}
+        <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr 180px 60px 80px 80px', gap: 0, padding: '8px 20px', borderBottom: '1px solid var(--border)', alignItems: 'center' }}>
+          {['', 'Title', 'Tags', '', 'Duration', 'BPM', ''].map((h, i) => (
+            <div key={i} style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-3)', letterSpacing: '0.06em', textTransform: 'uppercase', textAlign: i >= 4 ? 'center' : 'left' }}>{h}</div>
+          ))}
+        </div>
+
+        {filtered.map((item, i) => {
+          const isPlaying = playing === item.id;
+          return (
+            <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr 180px 60px 80px 80px', gap: 0, padding: '7px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)', alignItems: 'center', transition: 'background 0.12s', cursor: 'default' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+
+              {/* Play button */}
+              <button onClick={() => setPlaying(isPlaying ? null : item.id)}
+                style={{ width: 26, height: 26, borderRadius: '50%', background: isPlaying ? item.color : 'rgba(255,255,255,0.07)', border: `1px solid ${isPlaying ? item.color : 'rgba(255,255,255,0.1)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s' }}>
+                <Icon d={isPlaying ? icons.pause[0] : icons.play} size={10} fill={isPlaying ? '#000' : 'rgba(255,255,255,0.7)'} color={isPlaying ? '#000' : 'rgba(255,255,255,0.7)'} />
+              </button>
+
+              {/* Title + thumbnail */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 8, background: THUMB_GRADIENTS[i % THUMB_GRADIENTS.length], flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', padding: '6px 4px', gap: 1 }}>
+                    {Array.from({length: 10}).map((_, j) => {
+                      const h = 30 + Math.abs(Math.sin((j + i * 3) * 0.9)) * 55;
+                      return <div key={j} style={{ flex: 1, height: `${h}%`, background: 'rgba(255,255,255,0.5)', borderRadius: 1 }} />;
+                    })}
+                  </div>
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>AudioWeave · {item.type}</div>
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'nowrap', overflow: 'hidden' }}>
+                {item.tags.slice(0, 2).map(t => (
+                  <span key={t} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 'var(--radius-pill)', background: 'rgba(255,255,255,0.06)', color: 'var(--text-2)', border: '1px solid rgba(255,255,255,0.09)', whiteSpace: 'nowrap' }}>{t}</span>
+                ))}
+              </div>
+
+              {/* Waveform */}
+              <div style={{ height: 32, paddingRight: 8 }}>
+                <Waveform bars={45} playing={isPlaying} color={item.color} />
+              </div>
+
+              {/* Duration */}
+              <div style={{ fontSize: 12, color: 'var(--text-2)', textAlign: 'center' }}>{item.duration}</div>
+
+              {/* BPM (fake) */}
+              <div style={{ fontSize: 12, color: 'var(--text-3)', textAlign: 'center' }}>{90 + (item.id * 7) % 50} BPM</div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+                <button style={{ opacity: 0.35, cursor: 'pointer', transition: 'opacity 0.15s' }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.35}>
+                  <Icon d={icons.heart} size={14} color="var(--text)" />
+                </button>
+                <button style={{ opacity: 0.35, cursor: 'pointer', transition: 'opacity 0.15s' }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.35}>
+                  <Icon d={icons.download} size={14} color="var(--text)" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── ALBUM PAGE ───────────────────────────────────────────────────────────────
+const SAMPLE_SCRIPT = `INT. COFFEE SHOP - MORNING
+
+Sarah enters nervously, clutching her guitar case. The café is quiet, just a few early regulars. She finds a corner table.
+
+SARAH
+(whispering to herself)
+You can do this.
+
+She sets up and begins to play. The melody is tentative at first, then grows in confidence.
+
+EXT. CITY STREET - LATER
+
+Sarah walks through the bustling city, headphones in, lost in her music. The world moves around her in a blur of color and noise.
+
+INT. RECORDING STUDIO - NIGHT
+
+Sarah and producer MARCUS sit behind a mixing board. Lights dim, the booth lit only by warm studio lights. Magic is happening.
+
+MARCUS
+That's it. That's the one.
+
+A moment of pure joy. The song they've been working toward for months finally comes together.`;
+
+const SECTION_SUGGESTIONS = [
+  { section: 'Opening Scene', start: 0, end: 3, suggestion: 'Soft acoustic guitar, fingerpicked, gentle and intimate — mirrors Sarah\'s nervousness.', mood: 'Nervous / Hopeful', genre: 'Acoustic Folk', color: '#6090e0', bpm: '72 BPM' },
+  { section: 'Coffee Shop Performance', start: 3, end: 7, suggestion: 'Melody builds from sparse to warm — piano joins the guitar, emotional swell.', mood: 'Hopeful / Confident', genre: 'Indie Folk', color: '#60c090', bpm: '84 BPM' },
+  { section: 'City Street Montage', start: 7, end: 11, suggestion: 'Upbeat, rhythmic indie pop. Driving beat, layered synths — the city comes alive.', mood: 'Energetic / Free', genre: 'Indie Pop', color: '#e8a055', bpm: '110 BPM' },
+  { section: 'Studio Session', start: 11, end: 16, suggestion: 'Warm, low-key R&B groove. Late-night studio vibes. Bass-forward, subtle keys.', mood: 'Focused / Creative', genre: 'R&B / Soul', color: '#a070e0', bpm: '90 BPM' },
+  { section: 'Climax Moment', start: 16, end: 20, suggestion: 'Full orchestral swell with the acoustic theme from the opening. Triumphant resolution.', mood: 'Triumphant / Joyful', genre: 'Cinematic', color: '#e06060', bpm: '96 BPM' },
+];
+
+function AlbumPage({ onNavigate }) {
+  const [script, setScript] = useState(SAMPLE_SCRIPT);
+  const [analysed, setAnalysed] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [generating, setGenerating] = useState(null);
+  const [generated, setGenerated] = useState({});
+
+  const analyze = () => {
+    if (!script.trim()) return;
+    setAnalyzing(true); setAnalysed(false); setProgress(0);
+    const iv = setInterval(() => {
+      setProgress(p => { if (p >= 100) { clearInterval(iv); setAnalyzing(false); setAnalysed(true); return 100; } return p + 3; });
+    }, 50);
+  };
+
+  const generateSection = (idx) => {
+    setGenerating(idx);
+    setTimeout(() => { setGenerated(g => ({ ...g, [idx]: true })); setGenerating(null); }, 2500);
+  };
+
+  return (
+    <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      {/* Left: Script Input */}
+      <div style={{ width: 380, borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ padding: '20px 24px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 28, letterSpacing: '-0.3px', marginBottom: 4 }}>Album Composer</h1>
+          <p style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 }}>Paste a script or story. AI maps the emotional arc and suggests music for each scene.</p>
+        </div>
+        <div style={{ flex: 1, padding: 16, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <textarea value={script} onChange={e => setScript(e.target.value)}
+            style={{ flex: 1, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, color: 'var(--text)', fontSize: 12, lineHeight: 1.7, fontFamily: 'var(--font-mono)', resize: 'none', outline: 'none', letterSpacing: '0.01em' }} />
+          <button onClick={analyze} disabled={analyzing || !script.trim()} style={{ marginTop: 12, padding: '11px 0', borderRadius: 'var(--radius-pill)', fontSize: 13, fontWeight: 600, background: analyzing ? 'rgba(232,160,85,0.15)' : 'var(--accent)', color: analyzing ? 'var(--accent)' : '#000', border: 'none', cursor: analyzing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}>
+            {analyzing ? (
+              <><div style={{ width: 14, height: 14, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Analysing script… {progress}%</>
+            ) : (
+              <><Icon d={icons.sparkle[0]} size={14} fill="currentColor" stroke="none" /> Analyse Script</>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Right: Analysis Results */}
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {!analysed ? (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, color: 'var(--text-3)' }}>
+            {analyzing ? (
+              <>
+                <div style={{ width: 48, height: 48, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 14, color: 'var(--text-2)', marginBottom: 4 }}>Reading your script…</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-3)' }}>Identifying scenes, moods and emotional arc</div>
+                </div>
+                <div style={{ width: 200, height: 3, background: 'var(--card)', borderRadius: 4 }}>
+                  <div style={{ height: '100%', width: `${progress}%`, background: 'var(--accent)', borderRadius: 4, transition: 'width 0.1s' }} />
+                </div>
+              </>
+            ) : (
+              <>
+                <Icon d={icons.film} size={40} color="var(--text-3)" />
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 22, color: 'var(--text-2)', marginBottom: 6 }}>Paste a script to begin</div>
+                  <div style={{ fontSize: 12 }}>AI will identify scenes and suggest music for each moment</div>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 28, letterSpacing: '-0.3px', marginBottom: 4 }}>Scene Analysis</div>
+              <p style={{ fontSize: 12, color: 'var(--text-2)' }}>{SECTION_SUGGESTIONS.length} scenes identified · Full emotional arc mapped</p>
+            </div>
+
+            {/* Timeline bar */}
+            <div style={{ display: 'flex', height: 8, borderRadius: 6, overflow: 'hidden', marginBottom: 24, gap: 2 }}>
+              {SECTION_SUGGESTIONS.map((s, i) => (
+                <div key={i} style={{ flex: s.end - s.start, background: s.color, opacity: selected === i ? 1 : 0.5, cursor: 'pointer', transition: 'opacity 0.2s', borderRadius: 2 }} onClick={() => setSelected(selected === i ? null : i)} title={s.section} />
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {SECTION_SUGGESTIONS.map((s, i) => (
+                <Card key={i} hover style={{ overflow: 'hidden', borderLeft: `3px solid ${s.color}`, cursor: 'pointer', transition: 'all 0.2s' }}
+                  onClick={() => setSelected(selected === i ? null : i)}>
+                  <div style={{ padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>{s.section}</div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 'var(--radius-pill)', background: `${s.color}22`, color: s.color, border: `1px solid ${s.color}44` }}>{s.genre}</span>
+                          <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 'var(--radius-pill)', background: 'rgba(255,255,255,0.05)', color: 'var(--text-3)', border: '1px solid var(--border)' }}>{s.bpm}</span>
+                          <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 'var(--radius-pill)', background: 'rgba(255,255,255,0.05)', color: 'var(--text-3)', border: '1px solid var(--border)' }}>{s.mood}</span>
+                        </div>
+                      </div>
+                      <button onClick={e => { e.stopPropagation(); generateSection(i); }}
+                        style={{ padding: '6px 14px', borderRadius: 'var(--radius-pill)', fontSize: 11, fontWeight: 600, background: generated[i] ? `${s.color}22` : 'rgba(255,255,255,0.07)', color: generated[i] ? s.color : 'var(--text-2)', border: `1px solid ${generated[i] ? `${s.color}44` : 'var(--border)'}`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, transition: 'all 0.2s', whiteSpace: 'nowrap' }}>
+                        {generating === i ? <><div style={{ width: 10, height: 10, border: '1.5px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Generating</> : generated[i] ? '✓ Generated' : <><Icon d={icons.sparkle[0]} size={11} fill="currentColor" stroke="none" /> Generate</>}
+                      </button>
+                    </div>
+                    <p style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.55 }}>{s.suggestion}</p>
+                    {generated[i] && (
+                      <div style={{ marginTop: 12, height: 36, background: 'var(--card-hi)', borderRadius: 8, padding: '6px 10px', border: '1px solid var(--border)' }}>
+                        <Waveform bars={50} color={s.color} />
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            {Object.keys(generated).length > 0 && (
+              <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button style={{ padding: '10px 20px', borderRadius: 'var(--radius-pill)', fontSize: 13, fontWeight: 500, background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)', color: 'var(--text-2)', cursor: 'pointer' }}>Export All Stems</button>
+                <button style={{ padding: '10px 20px', borderRadius: 'var(--radius-pill)', fontSize: 13, fontWeight: 600, background: 'var(--accent)', color: '#000', border: 'none', cursor: 'pointer' }}>Download Album Pack</button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── STEM SEPARATION PAGE ─────────────────────────────────────────────────────
+const STEMS = [
+  { id: 'vocals',  label: 'Vocals',    icon: icons.mic,        color: 'rgba(255,255,255,0.55)' },
+  { id: 'drums',   label: 'Drums',     icon: icons.bolt,       color: 'rgba(255,255,255,0.45)' },
+  { id: 'bass',    label: 'Bass',      icon: icons.waveform,   color: 'rgba(232,160,85,0.7)'   },
+  { id: 'melody',  label: 'Melody',    icon: icons.music[0],   color: 'rgba(255,255,255,0.4)'  },
+  { id: 'harmony', label: 'Harmony',   icon: icons.layers[0],  color: 'rgba(232,160,85,0.5)'   },
+  { id: 'fx',      label: 'FX / Other',icon: icons.sparkle[0], color: 'rgba(255,255,255,0.3)'  },
+];
+
+const DEMO_TRACK = { name: 'Epic Battle Theme.wav', duration: '3:24' };
+
+function StemPage() {
+  const [file, setFile] = useState(DEMO_TRACK.name);
+  const [dragging, setDragging] = useState(false);
+  const [separating, setSeparating] = useState(false);
+  const [separated, setSeparated] = useState(true);
+  const [progress, setProgress] = useState(100);
+  const [muted, setMuted] = useState({});
+  const [soloed, setSoloed] = useState(null);
+  const [playing, setPlaying] = useState(false);
+  const [playhead, setPlayhead] = useState(0);
+  const [volumes, setVolumes] = useState(() => Object.fromEntries(STEMS.map(s => [s.id, 80])));
+  const fileRef = useRef();
+  const playRef = useRef();
+
+  useEffect(() => {
+    if (playing) {
+      playRef.current = setInterval(() => setPlayhead(p => p >= 100 ? 0 : p + 0.15), 80);
+    } else clearInterval(playRef.current);
+    return () => clearInterval(playRef.current);
+  }, [playing]);
+
+  const handleDrop = (e) => {
+    e.preventDefault(); setDragging(false);
+    const f = e.dataTransfer.files[0];
+    if (f) { setFile(f.name); startSep(); }
+  };
+  const handleFile = (e) => { const f = e.target.files[0]; if (f) { setFile(f.name); startSep(); } };
+  const startSep = () => {
+    setSeparating(true); setSeparated(false); setProgress(0); setPlaying(false); setPlayhead(0);
+    const iv = setInterval(() => {
+      setProgress(p => { if (p >= 100) { clearInterval(iv); setSeparating(false); setSeparated(true); return 100; } return p + 1.2; });
+    }, 40);
+  };
+  const toggleMute = (id) => setMuted(m => ({ ...m, [id]: !m[id] }));
+  const toggleSolo = (id) => setSoloed(s => s === id ? null : id);
+  const isAudible = (id) => !muted[id] && (soloed === null || soloed === id);
+
+  const formatTime = (pct) => {
+    const total = 204; // 3:24
+    const s = Math.round(pct / 100 * total);
+    return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+  };
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Header */}
+      <div style={{ padding: '16px 28px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 28, letterSpacing: '-0.3px', marginBottom: 2 }}>Stem Separation</h1>
+          <p style={{ fontSize: 12, color: 'var(--text-2)' }}>Isolate vocals, drums, bass, melody and more from any track.</p>
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <button onClick={() => fileRef.current.click()} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 'var(--radius-pill)', fontSize: 12, fontWeight: 500, background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)', color: 'var(--text-2)', cursor: 'pointer' }}>
+            <Icon d={icons.upload} size={13} /> Upload new
+          </button>
+          {separated && (
+            <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 'var(--radius-pill)', fontSize: 12, fontWeight: 500, background: 'var(--accent-dim)', border: '1px solid rgba(232,160,85,0.25)', color: 'var(--accent)', cursor: 'pointer' }}>
+              <Icon d={icons.download} size={13} /> Export all stems
+            </button>
+          )}
+        </div>
+        <input ref={fileRef} type="file" accept="audio/*" style={{ display: 'none' }} onChange={handleFile} />
+      </div>
+
+      {/* Track info bar */}
+      {file && (
+        <div style={{ padding: '10px 28px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, background: 'rgba(255,255,255,0.015)' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--accent-dim)', border: '1px solid rgba(232,160,85,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon d={icons.music[0]} size={14} color="var(--accent)" />
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{file}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{separated ? `${STEMS.length} stems · ${DEMO_TRACK.duration}` : separating ? `Separating… ${Math.round(progress)}%` : ''}</div>
+          </div>
+          {separating && (
+            <div style={{ flex: 1, height: 3, background: 'var(--card)', borderRadius: 4, marginLeft: 12 }}>
+              <div style={{ height: '100%', width: `${progress}%`, background: 'var(--accent)', borderRadius: 4, transition: 'width 0.05s', boxShadow: '0 0 8px rgba(232,160,85,0.4)' }} />
+            </div>
+          )}
+          {separated && <span style={{ fontSize: 11, color: 'rgba(150,200,130,0.9)', marginLeft: 4 }}>✓ Ready</span>}
+        </div>
+      )}
+
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        {/* Upload drop zone (no file) */}
+        {!file && (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+            <div onDrop={handleDrop} onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)}
+              onClick={() => fileRef.current.click()}
+              style={{ border: `2px dashed ${dragging ? 'var(--accent)' : 'rgba(255,255,255,0.12)'}`, borderRadius: 20, padding: '60px 80px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', background: dragging ? 'var(--warm)' : 'transparent', width: '100%', maxWidth: 480 }}>
+              <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <Icon d={icons.upload} size={22} color="var(--text-3)" />
+              </div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 22, marginBottom: 6, color: 'var(--text)' }}>Drop your audio here</div>
+              <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 20 }}>MP3, WAV, FLAC, AIFF · up to 200MB</div>
+              <button style={{ padding: '9px 22px', borderRadius: 'var(--radius-pill)', fontSize: 12, fontWeight: 500, background: 'rgba(255,255,255,0.07)', color: 'var(--text-2)', border: '1px solid var(--border-md)', cursor: 'pointer' }}>Browse files</button>
+            </div>
+          </div>
+        )}
+
+        {/* Stems */}
+        {separated && (
+          <div className="fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            {/* Global playback bar */}
+            <div style={{ padding: '10px 28px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+              <button onClick={() => setPlaying(!playing)} style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.09)', border: '1px solid var(--border-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                <Icon d={playing ? icons.pause[0] : icons.play} size={12} fill={playing ? 'none' : 'rgba(255,255,255,0.8)'} color="rgba(255,255,255,0.8)" />
+              </button>
+              <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', width: 34 }}>{formatTime(playhead)}</span>
+              {/* Playhead slider */}
+              <div style={{ flex: 1, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 3, position: 'relative', cursor: 'pointer' }}
+                onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setPlayhead((e.clientX - r.left) / r.width * 100); }}>
+                <div style={{ height: '100%', width: `${playhead}%`, background: 'rgba(255,255,255,0.35)', borderRadius: 3, pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', top: '50%', left: `${playhead}%`, transform: 'translate(-50%,-50%)', width: 10, height: 10, borderRadius: '50%', background: 'white', boxShadow: '0 0 0 2px rgba(255,255,255,0.2)', pointerEvents: 'none' }} />
+              </div>
+              <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', width: 34 }}>{DEMO_TRACK.duration}</span>
+            </div>
+
+            {/* Column labels */}
+            <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 130px 90px', gap: 0, padding: '8px 28px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+              {['Stem', 'Waveform', 'Volume', 'Controls'].map((h, i) => (
+                <div key={i} style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-3)', letterSpacing: '0.07em', textTransform: 'uppercase', textAlign: i >= 2 ? 'center' : 'left' }}>{h}</div>
+              ))}
+            </div>
+
+            {/* Stem rows */}
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {STEMS.map((stem) => {
+                const audible = isAudible(stem.id);
+                const vol = volumes[stem.id];
+                return (
+                  <div key={stem.id} style={{ display: 'grid', gridTemplateColumns: '160px 1fr 130px 90px', gap: 0, padding: '10px 28px', borderBottom: '1px solid rgba(255,255,255,0.04)', alignItems: 'center', transition: 'background 0.15s', opacity: audible ? 1 : 0.3 }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    {/* Stem label */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 30, height: 30, borderRadius: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon d={stem.icon} size={13} color="rgba(255,255,255,0.5)" />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: audible ? 'var(--text)' : 'var(--text-3)' }}>{stem.label}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>{vol}%</div>
+                      </div>
+                    </div>
+                    {/* Waveform */}
+                    <div style={{ height: 48, paddingRight: 20, position: 'relative' }}>
+                      <Waveform bars={90} playing={playing && audible} color={stem.color} dim={!audible} />
+                      {/* Playhead line */}
+                      <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${playhead}%`, width: 1, background: 'rgba(255,255,255,0.4)', pointerEvents: 'none', transform: 'translateX(-50%)' }} />
+                    </div>
+                    {/* Volume slider */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <input type="range" min={0} max={100} value={vol}
+                        onChange={e => setVolumes(v => ({ ...v, [stem.id]: +e.target.value }))}
+                        style={{ width: 90, accentColor: 'rgba(232,160,85,0.8)', cursor: 'pointer' }} />
+                    </div>
+                    {/* S / M / DL */}
+                    <div style={{ display: 'flex', gap: 5, justifyContent: 'center' }}>
+                      <button onClick={() => toggleSolo(stem.id)}
+                        title="Solo" style={{ width: 26, height: 26, borderRadius: 6, fontSize: 11, fontWeight: 700, background: soloed === stem.id ? 'rgba(232,160,85,0.2)' : 'rgba(255,255,255,0.05)', color: soloed === stem.id ? 'var(--accent)' : 'var(--text-3)', border: `1px solid ${soloed === stem.id ? 'rgba(232,160,85,0.3)' : 'rgba(255,255,255,0.08)'}`, cursor: 'pointer', transition: 'all 0.15s' }}>S</button>
+                      <button onClick={() => toggleMute(stem.id)}
+                        title="Mute" style={{ width: 26, height: 26, borderRadius: 6, fontSize: 11, fontWeight: 700, background: muted[stem.id] ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)', color: muted[stem.id] ? 'var(--text)' : 'var(--text-3)', border: `1px solid ${muted[stem.id] ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)'}`, cursor: 'pointer', transition: 'all 0.15s' }}>M</button>
+                      <button title="Download" style={{ width: 26, height: 26, borderRadius: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        <Icon d={icons.download} size={11} color="var(--text-3)" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── HOME PAGE ────────────────────────────────────────────────────────────────
+const QUICK_TOOLS = [
+  { label: 'Generate', icon: icons.bolt, color: '#e8a055', id: 'generate', desc: 'Create music & songs with AI' },
+  { label: 'Library', icon: icons.library, color: '#6090e0', id: 'library', desc: 'Your saved generations' },
+  { label: 'Album', icon: icons.film, color: '#a070e0', id: 'album', desc: 'Score your script with AI' },
+  { label: 'Stem Separation', icon: icons.scissors, color: '#60c090', id: 'stems', desc: 'Isolate audio layers' },
+];
+
+const RECENT_ITEMS = [
+  { title: 'Epic Battle Theme', type: 'Music', time: '2 min ago', color: '#e8a055' },
+  { title: 'Summer Vibes', type: 'Song', time: '14 min ago', color: '#60c090' },
+  { title: 'Late Night Study', type: 'Music', time: '1 hr ago', color: '#6090e0' },
+  { title: 'Rain Forest Ambience', type: 'Sound FX', time: '2 hr ago', color: '#60c090' },
+  { title: 'Neon City Nights', type: 'Music', time: 'Apr 17', color: '#a070e0' },
+];
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function HomePage({ onNavigate }) {
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Top bar */}
+      <div style={{ padding: '12px 28px', borderBottom: '1px solid var(--border)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(232,160,85,0.12)', border: '1px solid rgba(232,160,85,0.25)', borderRadius: 'var(--radius-pill)', padding: '5px 12px 5px 8px', cursor: 'pointer' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, background: 'var(--accent)', color: '#000', borderRadius: 4, padding: '1px 6px', letterSpacing: '0.04em' }}>NEW</span>
+          <span style={{ fontSize: 12, color: 'var(--accent)' }}>Introducing Music Marketplace</span>
+          <Icon d={icons.chevronR} size={12} color="var(--accent)" />
+        </div>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: '28px 28px' }}>
+        {/* Greeting */}
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4 }}>My Workspace</div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 38, letterSpacing: '-0.5px', color: 'var(--text)' }}>{getGreeting()}, Sohan</h1>
+        </div>
+
+        {/* Quick tool grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 36 }}>
+          {QUICK_TOOLS.map(tool => (
+            <button key={tool.id} onClick={() => onNavigate(tool.id)}
+              style={{ borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)', padding: '20px 16px 16px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s', position: 'relative', overflow: 'hidden' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--card-hi)'; e.currentTarget.style.borderColor = `${tool.color}40`; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--card)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
+              {/* Background glow */}
+              <div style={{ position: 'absolute', top: 0, right: 0, width: 80, height: 80, background: `radial-gradient(circle, ${tool.color}15, transparent 70%)`, pointerEvents: 'none' }} />
+              {/* Icon */}
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: `${tool.color}18`, border: `1px solid ${tool.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+                <Icon d={tool.icon} size={18} color={tool.color} />
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>{tool.label}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-3)', lineHeight: 1.4 }}>{tool.desc}</div>
+            </button>
+          ))}
+        </div>
+
+        {/* Two-column: recent + stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          {/* Latest from library */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Latest from the library</div>
+              <button onClick={() => onNavigate('library')} style={{ fontSize: 11, color: 'var(--accent)', background: 'transparent', border: 'none', cursor: 'pointer' }}>View all →</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {RECENT_ITEMS.map((item, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, cursor: 'pointer', transition: 'background 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <div style={{ width: 34, height: 34, borderRadius: 8, background: `${item.color}20`, border: `1px solid ${item.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon d={icons.music[0]} size={13} color={item.color} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>{item.type}</div>
+                  </div>
+                  <span style={{ fontSize: 10, color: 'var(--text-3)', flexShrink: 0 }}>{item.time}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick actions */}
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>Quick start</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                { label: 'Generate a Song', sub: 'Describe mood, theme, vocal style', id: 'generate', color: '#e8a055' },
+                { label: 'Score a Script', sub: 'AI maps music to your scenes', id: 'album', color: '#a070e0' },
+                { label: 'Separate Stems', sub: 'Isolate vocals, bass, drums', id: 'stems', color: '#60c090' },
+              ].map(q => (
+                <button key={q.id} onClick={() => onNavigate(q.id)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--card-hi)'; e.currentTarget.style.borderColor = `${q.color}35`; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--card)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: q.color, flexShrink: 0, boxShadow: `0 0 6px ${q.color}` }} />
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)' }}>{q.label}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{q.sub}</div>
+                  </div>
+                  <Icon d={icons.chevronR} size={13} color="var(--text-3)" style={{ marginLeft: 'auto' }} />
+                </button>
+              ))}
+            </div>
+
+            {/* Credits summary */}
+            <div style={{ marginTop: 16, padding: '14px 16px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)' }}>Credits used</span>
+                <button onClick={() => onNavigate('subscription')} style={{ fontSize: 10, color: 'var(--accent)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 500 }}>Upgrade ↗</button>
+              </div>
+              <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 3, marginBottom: 6 }}>
+                <div style={{ height: '100%', width: '54%', background: 'linear-gradient(90deg, var(--accent), rgba(232,160,85,0.5))', borderRadius: 3 }} />
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-3)' }}>5,400 / 10,000 credits · Pro Plan</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SUBSCRIPTION PAGE ────────────────────────────────────────────────────────
+const PLANS = [
+  { id: 'free', name: 'Free', price: 0, credits: '10k', projects: 3, current: false, features: ['10k credits /mo', '3 Studio Projects', 'Access to Generate, Library, Stems', 'Basic audio quality'] },
+  { id: 'starter', name: 'Starter', price: 5, credits: '30k', projects: 20, current: false, features: ['30k credits /mo', '20 Studio Projects', 'Album Composer access', 'Commercial License', 'High quality audio'] },
+  { id: 'creator', name: 'Creator', price: 15, credits: '121k', projects: 1000, popular: true, current: false, features: ['121k credits /mo', '1,000 Studio Projects', 'Professional stems', '192kbps quality audio', 'Everything in Starter'] },
+  { id: 'pro', name: 'Pro', price: 35, credits: '600k', projects: 3000, current: true, features: ['600k credits /mo', '3,000 Studio Projects', '44.1kHz PCM audio output', 'API access', 'Everything in Creator'] },
+];
+
+function SubscriptionPage() {
+  const billing = 'monthly';
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Header */}
+      <div style={{ padding: '16px 28px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 32, letterSpacing: '-0.4px', marginBottom: 2 }}>Subscription</h1>
+        <p style={{ fontSize: 12, color: 'var(--text-2)' }}>Manage your plan and billing</p>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
+        {/* Credits bar */}
+        <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+          <div style={{ flex: 1, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-2)' }}>Credits used</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>5,400 <span style={{ color: 'var(--text-3)', fontWeight: 400 }}>/ 10,000 credits</span></span>
+            </div>
+            <div style={{ height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 4 }}>
+              <div style={{ height: '100%', width: '54%', background: 'linear-gradient(90deg, var(--accent), rgba(232,160,85,0.5))', borderRadius: 4, boxShadow: '0 0 8px rgba(232,160,85,0.3)' }} />
+            </div>
+          </div>
+          <div style={{ flex: 1, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 4 }}>Current plan</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Pro Plan</div>
+            </div>
+            <button style={{ padding: '7px 16px', borderRadius: 8, fontSize: 12, fontWeight: 500, background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)', color: 'var(--text-2)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Icon d={icons.settings} size={13} /> Billing
+            </button>
+          </div>
+        </div>
+
+        {/* Monthly only */}
+        <div style={{ marginBottom: 20 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-3)', padding: '5px 12px', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8 }}>Monthly billing</span>
+        </div>
+
+        {/* Plan cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+          {PLANS.map(plan => (
+            <div key={plan.id} style={{ borderRadius: 16, background: plan.popular ? 'rgba(232,160,85,0.06)' : 'var(--card)', border: `1px solid ${plan.popular ? 'rgba(232,160,85,0.3)' : plan.current ? 'rgba(255,255,255,0.15)' : 'var(--border)'}`, padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 0, position: 'relative' }}>
+              {plan.popular && (
+                <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: 'var(--accent)', color: '#000', fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--radius-pill)', letterSpacing: '0.04em' }}>Popular</div>
+              )}
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>{plan.name}</div>
+              <div style={{ marginBottom: 16 }}>
+
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 28, color: 'var(--text)', letterSpacing: '-0.5px' }}>
+                  {plan.price === 0 ? '$0' : `$${plan.price}`}
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--text-3)' }}>/mo</span>
+                {plan.origPrice && <div style={{ fontSize: 10, color: 'var(--accent)', marginTop: 2 }}>First month half price</div>}              </div>
+              <button style={{ width: '100%', padding: '9px 0', borderRadius: 8, fontSize: 12, fontWeight: 600, marginBottom: 16, cursor: plan.current ? 'default' : 'pointer', background: plan.popular ? 'var(--accent)' : plan.current ? 'transparent' : 'rgba(255,255,255,0.07)', color: plan.popular ? '#000' : plan.current ? 'var(--text-3)' : 'var(--text)', border: plan.current ? '1px solid var(--border)' : 'none', transition: 'opacity 0.15s' }}
+                onMouseEnter={e => { if (!plan.current) e.currentTarget.style.opacity = '0.85'; }}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                {plan.current ? '✓ Current plan' : 'Upgrade'}
+              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {plan.features.map((f, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 11, color: i === plan.features.length - 1 && f.startsWith('Everything') ? 'var(--text-3)' : 'var(--text-2)', lineHeight: 1.4 }}>
+                    <span style={{ color: plan.popular ? 'var(--accent)' : 'rgba(255,255,255,0.3)', flexShrink: 0, fontSize: 12, marginTop: -1 }}>{f.startsWith('Everything') ? '+' : '✓'}</span>
+                    {f}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+const NAV = [
+  { id: 'home', label: 'Home', icon: icons.home },
+  { id: 'generate', label: 'Generate', icon: icons.bolt },
+  { id: 'library', label: 'Library', icon: icons.library },
+  { id: 'album', label: 'Album', icon: icons.film },
+  { id: 'stems', label: 'Stem Separation', icon: icons.scissors },
+];
+
+function Sidebar({ page, setPage }) {
+  return (
+    <div style={{ width: 'var(--sidebar-w)', background: 'var(--surface)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', flexShrink: 0, overflow: 'hidden' }}>
+      {/* Logo */}
+      <div style={{ padding: '16px 14px 10px', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, var(--accent), #a070e0)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 12px rgba(232,160,85,0.3)' }}>
+            <Icon d={icons.waveform} size={14} color="white" />
+          </div>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>AudioWeave</span>
+        </div>
+      </div>
+
+      {/* Workspace */}
+      <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', cursor: 'pointer' }}>
+          <div style={{ width: 20, height: 20, borderRadius: 6, background: 'linear-gradient(135deg, var(--accent), #a070e0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#000' }}>A</div>
+          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)', flex: 1 }}>My Studio</span>
+          <Icon d={icons.chevronD} size={12} color="var(--text-3)" />
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav style={{ flex: 1, padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 500, letterSpacing: '0.07em', textTransform: 'uppercase', padding: '6px 8px 4px' }}>Tools</div>
+        {NAV.map(n => (
+          <button key={n.id} onClick={() => setPage(n.id)}
+            style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 8, width: '100%', cursor: 'pointer', fontSize: 13, fontWeight: page === n.id ? 500 : 400, background: page === n.id ? 'rgba(232,160,85,0.12)' : 'transparent', color: page === n.id ? 'var(--accent)' : 'var(--text-2)', border: 'none', textAlign: 'left', transition: 'all 0.15s' }}
+            onMouseEnter={e => { if (page !== n.id) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--text)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = page === n.id ? 'rgba(232,160,85,0.12)' : 'transparent'; e.currentTarget.style.color = page === n.id ? 'var(--accent)' : 'var(--text-2)'; }}>
+            <Icon d={n.icon} size={15} color="currentColor" />
+            {n.label}
+          </button>
+        ))}
+      </nav>
+
+      {/* Bottom */}
+      <div style={{ padding: '10px', borderTop: '1px solid var(--border)' }}>
+        {/* Credits block */}
+        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', marginBottom: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>5,400 <span style={{ fontWeight: 400, color: 'var(--text-3)', fontSize: 10 }}>/ 10,000</span></span>
+            <span style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 500 }}>Pro</span>
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--text-3)', marginBottom: 6 }}>credits remaining</div>
+          <div style={{ height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
+            <div style={{ height: '100%', width: '54%', background: 'linear-gradient(90deg, var(--accent), rgba(232,160,85,0.5))', borderRadius: 2 }} />
+          </div>
+        </div>
+        {/* Upgrade button */}
+        <button onClick={() => setPage('subscription')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, width: '100%', padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 600, color: '#000', background: 'var(--accent)', border: 'none', cursor: 'pointer', marginBottom: 4, letterSpacing: '0.01em', boxShadow: '0 2px 12px rgba(232,160,85,0.25)', transition: 'opacity 0.15s' }}
+          onMouseEnter={e => e.currentTarget.style.opacity = '0.85'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+          ✦ Upgrade
+        </button>
+        <button style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 8px', borderRadius: 8, fontSize: 12, color: 'var(--text-3)', cursor: 'pointer', background: 'transparent', border: 'none' }}>
+          <Icon d={icons.settings} size={14} />Settings
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── APP ──────────────────────────────────────────────────────────────────────
+function App() {
+  const [page, setPage] = useState(() => localStorage.getItem('aw_page') || 'home');
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+  const [tweakDefaults] = useState(/*EDITMODE-BEGIN*/{
+    "accentColor": "#e8a055",
+    "darkBg": "#0a0a0a",
+    "sidebarWidth": 200,
+    "fontScale": 1
+  }/*EDITMODE-END*/);
+  const [tweaks, setTweaks] = useState(tweakDefaults);
+
+  useEffect(() => { localStorage.setItem('aw_page', page); }, [page]);
+
+  // Tweak mode
+  useEffect(() => {
+    const handler = ({ data }) => {
+      if (data?.type === '__activate_edit_mode') setTweaksOpen(true);
+      if (data?.type === '__deactivate_edit_mode') setTweaksOpen(false);
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const setTweak = (key, val) => {
+    const next = { ...tweaks, [key]: val };
+    setTweaks(next);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: val } }, '*');
+    document.documentElement.style.setProperty('--accent', next.accentColor);
+    document.documentElement.style.setProperty('--bg', next.darkBg);
+  };
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--accent', tweaks.accentColor);
+    document.documentElement.style.setProperty('--bg', tweaks.darkBg);
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
+      <Sidebar page={page} setPage={setPage} />
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', overflow: 'hidden', height: '100%' }}>
+        {page === 'home' && <HomePage onNavigate={setPage} />}
+        {page === 'generate' && <GeneratePage />}
+        {page === 'library' && <LibraryPage onNavigate={setPage} />}
+        {page === 'album' && <AlbumPage onNavigate={setPage} />}
+        {page === 'stems' && <StemPage />}
+        {page === 'subscription' && <SubscriptionPage />}
+      </div>
+
+      {/* Tweaks panel */}
+      {tweaksOpen && (
+        <div style={{ position: 'fixed', bottom: 20, right: 20, background: 'var(--card)', border: '1px solid var(--border-md)', borderRadius: 16, padding: 20, width: 240, boxShadow: '0 8px 40px rgba(0,0,0,0.6)', zIndex: 9999, animation: 'fadeIn 0.2s ease' }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 18, marginBottom: 14, color: 'var(--text)' }}>Tweaks</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <label style={{ fontSize: 11, color: 'var(--text-2)', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 6, display: 'block' }}>Accent Color</label>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {['#e8a055','#60c090','#6090e0','#a070e0','#e06060'].map(c => (
+                  <button key={c} onClick={() => setTweak('accentColor', c)} style={{ width: 24, height: 24, borderRadius: '50%', background: c, border: tweaks.accentColor === c ? '2px solid white' : '2px solid transparent', cursor: 'pointer', boxShadow: tweaks.accentColor === c ? `0 0 8px ${c}` : 'none' }} />
+                ))}
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: 'var(--text-2)', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 6, display: 'block' }}>Background</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {['#0a0a0a','#08080f','#0a0f08','#0f080a'].map(c => (
+                  <button key={c} onClick={() => setTweak('darkBg', c)} style={{ width: 24, height: 24, borderRadius: 6, background: c, border: tweaks.darkBg === c ? '2px solid rgba(255,255,255,0.5)' : '2px solid rgba(255,255,255,0.1)', cursor: 'pointer' }} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
