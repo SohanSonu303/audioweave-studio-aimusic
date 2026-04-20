@@ -149,54 +149,64 @@ audioweave-studio-aimusic/
 
 Checkpoints; complete a phase before starting the next.
 
-### Phase 0 — Scaffold (blocks everything)
+### Phase 0 — Scaffold (blocks everything) ✅
 - [x] Create empty folder tree (`app/*`, `components/*`, `lib/api`, `stores`, `hooks`, `public`) with `.gitkeep` placeholders
-- [ ] `npx create-next-app@latest` into this repo (TypeScript, Tailwind, App Router, `src/` = no, ESLint = yes)
-- [ ] Install runtime: `@tanstack/react-query`, `@tanstack/react-query-devtools`, `zustand`, `react-hook-form`, `zod`, `@hookform/resolvers`, `framer-motion`, `wavesurfer.js`, `@clerk/nextjs`
-- [ ] Install dev: `openapi-typescript` + `tsx` (for the type-gen script)
-- [ ] Add `npm run gen:types` script: `openapi-typescript $NEXT_PUBLIC_API_URL/openapi.json -o lib/types.ts`
-- [ ] Install shadcn/ui and init: `npx shadcn@latest init`
-- [ ] Add base shadcn components: `button card input textarea tabs slider skeleton dialog tooltip scroll-area separator avatar`
-- [ ] Configure fonts in `app/layout.tsx` via `next/font/google` (Inter, Cormorant Garamond, JetBrains Mono)
-- [ ] Port design tokens from `sample.html` `:root` into `globals.css` + `tailwind.config.ts` (see design.md) — **dark-only**, no light palette
-- [ ] Set up `lib/api/client.ts` — fetch wrapper that attaches `Authorization: Bearer ${await auth().getToken()}` from Clerk
-- [ ] Wire `app/providers.tsx` with `<ClerkProvider>` > `<QueryClientProvider>` > devtools
-- [ ] Add Clerk middleware (`middleware.ts`) protecting all routes except `/sign-in`, `/sign-up`
-- [ ] Add `.env.local.example` with `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
+- [x] `npx create-next-app@latest` into this repo (TypeScript, Tailwind, App Router, `src/` = no, ESLint = yes)
+- [x] Install runtime: `@tanstack/react-query`, `@tanstack/react-query-devtools`, `zustand`, `react-hook-form`, `zod`, `@hookform/resolvers`, `framer-motion`, `wavesurfer.js`, `@clerk/nextjs`
+- [x] Install dev: `openapi-typescript` + `tsx` (for the type-gen script)
+- [x] Add `npm run gen:types` script: `openapi-typescript $NEXT_PUBLIC_API_URL/openapi.json -o lib/types.ts`
+- [x] Install shadcn/ui and init: `npx shadcn@latest init`
+- [x] Add base shadcn components: `button card input textarea tabs slider skeleton dialog tooltip scroll-area separator avatar`
+- [x] Configure fonts in `app/layout.tsx` via `next/font/google` (Inter, Cormorant Garamond, JetBrains Mono)
+- [x] Port design tokens from `sample.html` `:root` into `globals.css` (Tailwind v4 `@theme` block, no config file) — **dark-only**, no light palette
+- [x] Set up `lib/api/client.ts` — token-agnostic fetch wrapper; `hooks/use-api.ts` attaches Clerk JWT client-side
+- [x] Wire `app/providers.tsx` with `<ClerkProvider>` > `<QueryClientProvider>` > devtools
+- [x] Add Clerk middleware (`middleware.ts`) protecting all routes except `/sign-in`, `/sign-up`
+- [x] Add `.env.local.example` with `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
 
-### Phase 1 — Design primitives
-- [ ] `components/ui/icon.tsx` — port `icons` dict from sample verbatim
-- [ ] `components/ui/pill.tsx`
-- [ ] `components/ui/segmented.tsx`
-- [ ] `components/ui/drop-zone.tsx`
-- [ ] `components/audio/waveform.tsx` — start with the SVG-bars implementation from sample; identical API
-- [ ] `components/audio/play-button.tsx`
-- [ ] `components/audio/track-thumbnail.tsx`
-- [ ] Verify all primitives visually against sample.html in isolation (Storybook optional, not required)
+### Phase 1 — Design primitives ✅
+- [x] `components/ui/icon.tsx` — port `icons` dict from sample verbatim
+- [x] `components/ui/pill.tsx`
+- [x] `components/ui/segmented.tsx`
+- [x] `components/ui/drop-zone.tsx`
+- [x] `components/audio/waveform.tsx` — SVG-bars implementation, identical API to sample
+- [x] `components/audio/play-button.tsx`
+- [x] `components/audio/track-thumbnail.tsx`
+- [x] Type-check passes clean
 
-### Phase 2 — Layout shell
-- [ ] `components/layout/sidebar.tsx` (NAV constant in `lib/constants.ts`)
-- [ ] `app/layout.tsx` renders sidebar + `{children}` flex shell, hides body scroll
-- [ ] Set up routing: `/`, `/generate`, `/library`, `/album`, `/stems`, `/subscription`
-- [ ] Active-nav detection via `usePathname()`
-- [ ] `stores/ui-store.ts` — sidebar collapsed state (future-proof; not urgent)
+### Phase 2 — Layout shell ✅
+- [x] `lib/constants.ts` — NAV, STYLE_TAGS, PLANS, STEMS, TYPE_COLORS, THUMB_GRADIENTS
+- [x] `stores/ui-store.ts` — sidebar collapsed state (Zustand)
+- [x] `components/layout/sidebar.tsx` — pixel-perfect port, usePathname active detection
+- [x] `components/layout/app-shell.tsx` — flex wrapper (sidebar + content)
+- [x] `app/layout.tsx` renders AppShell wrapping all pages
+- [x] Page stubs created: `/generate`, `/library`, `/album`, `/stems`, `/subscription`
+- [x] Type-check passes clean
 
-### Phase 3 — Pages (build in this order; each page is a separate PR-sized chunk)
-1. [ ] **Home** — static content, wires `onNavigate` via `<Link>`
-2. [ ] **Library** — table renders from mock data first, swap to React Query once API contract is known
-3. [ ] **Generate** — hardest page; break into PromptBar → StylePicker → HistoryPanel → VariationCard
-4. [ ] **Stems** — upload flow + stem mixer (mute/solo/volume in local state; no real DSP yet)
-5. [ ] **Album** — script textarea + scene analysis list
-6. [ ] **Subscription** — pricing grid, static PLANS constant until Stripe
+### Phase 3 — Pages (build in this order; each page is a separate PR-sized chunk) ✅
+1. [x] **Home** — static content, wires `onNavigate` via `<Link>`
+2. [x] **Library** — table renders from mock data first, swap to React Query once API contract is known
+3. [x] **Generate** — hardest page; break into PromptBar → StylePicker → HistoryPanel → VariationCard
+4. [x] **Stems** — upload flow + stem mixer (mute/solo/volume in local state; no real DSP yet)
+5. [x] **Album** — script textarea + scene analysis list
+6. [x] **Subscription** — pricing grid, static PLANS constant until Stripe
 
 ### Phase 4 — State + backend integration
-- [ ] `stores/player-store.ts` — page-local player coordination (only one track plays at a time within a page)
+- [x] `stores/player-store.ts` — singleton `HTMLAudioElement`, `play/pause/toggle/stop`, Zustand
+- [x] `lib/api/auth.ts` — `useMe()` hook, real token balance + plan from `GET /auth/me`
+- [x] `lib/api/library.ts` — real `TrackItem`/`LibraryResponse` types + `useDownloadPoll(taskId)`
+- [x] `lib/api/generations.ts` — `useGenerateMusic`, `useGenerateSound` wired to correct endpoints
+- [x] Generate page — real POST, UUID project_id, Sound FX → `/sound_generator/`, Song lyrics passed, simulated progress polling, 402 → credits alert
+- [x] Library page — real data from `useLibrary()`, COMPLETED filter, skeleton loading, player store
+- [x] History panel — top 5 COMPLETED tracks from `useLibrary()`, player store
+- [x] Sidebar credits block — real token balance + plan name from `useMe()`
+- [x] VariationCard + LibraryRow — player store play/toggle, real download
+- [x] Sign-in / Sign-up pages — Clerk UI, white card on black background, no sidebar (`(app)` route group)
+- [x] Logout dropdown — shadcn DropdownMenu in announcement banner, `signOut` via Clerk
 - [ ] `stores/generate-draft-store.ts` — prompt/styles persist across nav
-- [ ] Replace mock data page-by-page with React Query hooks under `lib/api/*`
-- [ ] Generation progress via React Query `refetchInterval` polling
 - [ ] Marketplace banner → links to `/marketplace` stub page
 
-### Phase 5 — Payments (Clerk already wired in Phase 0)
+### Phase 5 — Payments (Clerk already wired in Phase 0) DONT VISIT NOW WILL DO LATER
 - [ ] Stripe: defer until backend exposes a checkout-session endpoint
 - [ ] Stems upload flow: revisit with backend team; pick between pre-signed URL vs proxied route
 
