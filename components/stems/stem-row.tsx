@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { Icon } from "@/components/ui/icon";
 import { Waveform } from "@/components/audio/waveform";
 
@@ -18,27 +19,91 @@ interface StemRowProps {
   muted: boolean;
   soloed: boolean;
   audible: boolean;
+  audioUrl?: string | null;
   onVolumeChange: (v: number) => void;
   onToggleMute: () => void;
   onToggleSolo: () => void;
+  onDurationLoad?: (d: number) => void;
+  onTimeUpdate?: (t: number) => void;
+  syncTime?: number | null;
 }
 
-export function StemRow({ stem, playing, playhead, volume, muted, soloed, audible, onVolumeChange, onToggleMute, onToggleSolo }: StemRowProps) {
+export function StemRow({
+  stem,
+  playing,
+  playhead,
+  volume,
+  muted,
+  soloed,
+  audible,
+  audioUrl,
+  onVolumeChange,
+  onToggleMute,
+  onToggleSolo,
+  onDurationLoad,
+  onTimeUpdate,
+  syncTime,
+}: StemRowProps) {
+  const [stemRowHovered, setStemRowHovered] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Sync playing state
+  useEffect(() => {
+    if (!audioRef.current || !audioUrl) return;
+    if (playing) {
+      audioRef.current.play().catch(() => {
+          // Play might be blocked by browser if not triggered by user interaction
+          // Page.tsx handles the master toggle which should satisfy the browser
+      });
+    } else {
+      audioRef.current.pause();
+    }
+  }, [playing, audioUrl]);
+
+  // Sync volume and audible state (gain control)
+  useEffect(() => {
+    if (!audioRef.current) return;
+    audioRef.current.volume = (volume / 100) * (audible ? 1 : 0);
+  }, [volume, audible]);
+
+  // Sync seek (external seek from master)
+  useEffect(() => {
+    if (syncTime !== null && syncTime !== undefined && audioRef.current) {
+      audioRef.current.currentTime = syncTime;
+    }
+  }, [syncTime]);
+
   return (
     <div
-      className="grid gap-0 px-7 py-[10px] border-b border-[rgba(255,255,255,0.04)] items-center transition-all duration-150"
+      onMouseEnter={() => setStemRowHovered(true)}
+      onMouseLeave={() => setStemRowHovered(false)}
+      className={`grid gap-0 px-7 py-[10px] border-b border-[rgba(255,255,255,0.04)] items-center transition-all duration-150 ${stemRowHovered ? "bg-[rgba(255,255,255,0.02)]" : ""}`}
       style={{
         gridTemplateColumns: "160px 1fr 130px 90px",
         opacity: audible ? 1 : 0.3,
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
-      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
     >
+      {/* Hidden Audio Element */}
+      {audioUrl && (
+        <audio
+          ref={audioRef}
+          src={audioUrl}
+          onLoadedMetadata={(e) => onDurationLoad?.(e.currentTarget.duration)}
+          onTimeUpdate={(e) => onTimeUpdate?.(e.currentTarget.currentTime)}
+          onEnded={() => {
+              // Can handle loop or stop here
+          }}
+        />
+      )}
+
       {/* Stem label */}
       <div className="flex items-center gap-[10px]">
         <div
           className="w-[30px] h-[30px] rounded-[7px] flex items-center justify-center flex-shrink-0"
-          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+          style={{
+            background: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,255,255,0.08)",
+          }}
         >
           <Icon d={stem.icon} size={13} color="rgba(255,255,255,0.5)" />
         </div>
@@ -101,13 +166,42 @@ export function StemRow({ stem, playing, playhead, volume, muted, soloed, audibl
         >
           M
         </button>
-        <button
-          title="Download"
-          className="w-[26px] h-[26px] rounded-[6px] flex items-center justify-center cursor-pointer"
-          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
-        >
-          <Icon d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" size={11} color="var(--aw-text-3)" />
-        </button>
+        {audioUrl ? (
+          <a
+            href={audioUrl}
+            download={`${stem.label}.wav`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Download"
+            className="w-[26px] h-[26px] rounded-[6px] flex items-center justify-center cursor-pointer hover:bg-[rgba(255,255,255,0.1)] transition-colors"
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
+            <Icon
+              d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+              size={11}
+              color="var(--aw-text-3)"
+            />
+          </a>
+        ) : (
+          <button
+            disabled
+            title="Download (Processing...)"
+            className="w-[26px] h-[26px] rounded-[6px] flex items-center justify-center cursor-not-allowed opacity-30"
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
+            <Icon
+              d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+              size={11}
+              color="var(--aw-text-3)"
+            />
+          </button>
+        )}
       </div>
     </div>
   );
