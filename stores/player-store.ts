@@ -13,10 +13,13 @@ export interface PlayerTrack {
 interface PlayerState {
   currentTrack: PlayerTrack | null;
   isPlaying: boolean;
+  currentTime: number;
+  audioDuration: number;
   play: (track: PlayerTrack) => void;
   pause: () => void;
   toggle: (track: PlayerTrack) => void;
   stop: () => void;
+  seek: (time: number) => void;
 }
 
 let _audio: HTMLAudioElement | null = null;
@@ -28,6 +31,17 @@ function getAudio(): HTMLAudioElement | null {
     _audio.addEventListener("ended", () => {
       usePlayerStore.setState({ isPlaying: false });
     });
+    _audio.addEventListener("timeupdate", () => {
+      usePlayerStore.setState({ currentTime: _audio!.currentTime });
+    });
+    _audio.addEventListener("loadedmetadata", () => {
+      usePlayerStore.setState({ audioDuration: _audio!.duration || 0, currentTime: 0 });
+    });
+    _audio.addEventListener("durationchange", () => {
+      if (_audio!.duration && isFinite(_audio!.duration)) {
+        usePlayerStore.setState({ audioDuration: _audio!.duration });
+      }
+    });
   }
   return _audio;
 }
@@ -35,6 +49,8 @@ function getAudio(): HTMLAudioElement | null {
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentTrack: null,
   isPlaying: false,
+  currentTime: 0,
+  audioDuration: 0,
 
   play: (track) => {
     const audio = getAudio();
@@ -43,6 +59,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     if (current?.id !== track.id) {
       audio.src = track.audioUrl;
       audio.load();
+      set({ currentTime: 0, audioDuration: 0 });
     }
     audio.play().catch(() => {});
     set({ currentTrack: track, isPlaying: true });
@@ -68,6 +85,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       audio.pause();
       audio.src = "";
     }
-    set({ currentTrack: null, isPlaying: false });
+    set({ currentTrack: null, isPlaying: false, currentTime: 0, audioDuration: 0 });
+  },
+
+  seek: (time: number) => {
+    const audio = getAudio();
+    if (!audio) return;
+    const clamped = Math.max(0, Math.min(time, audio.duration || 0));
+    audio.currentTime = clamped;
+    set({ currentTime: clamped });
   },
 }));

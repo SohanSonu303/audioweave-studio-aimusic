@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { GenerateHeader } from "@/components/generate/generate-header";
 import { LyricsCard } from "@/components/generate/lyrics-card";
 import { GeneratingCard } from "@/components/generate/generating-card";
@@ -37,6 +38,7 @@ export default function GeneratePage() {
 
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const queryClient = useQueryClient();
   const generateMusic = useGenerateMusic();
   const generateSound = useGenerateSound();
   const { data: pollData } = useDownloadPoll(taskId);
@@ -50,8 +52,8 @@ export default function GeneratePage() {
     if (generating && taskId) {
       setProgress(10);
       progressInterval.current = setInterval(() => {
-        setProgress((p) => (p < 75 ? p + 0.5 : p));
-      }, 200);
+        setProgress((p) => (p < 75 ? p + 0.3 : p));
+      }, 400);
     }
     return () => {
       if (progressInterval.current) clearInterval(progressInterval.current);
@@ -69,6 +71,7 @@ export default function GeneratePage() {
       if (progressInterval.current) clearInterval(progressInterval.current);
       setProgress(100);
       setCompletedTracks(allItems.filter((t) => t.status === "COMPLETED"));
+      queryClient.invalidateQueries({ queryKey: ["me"] });
     }
   }, [pollData]);
 
