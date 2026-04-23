@@ -23,10 +23,10 @@ export function StylePicker({ tab, included, excluded, onToggleInclude, onToggle
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex items-center gap-[5px] flex-shrink-0 w-16">
           <div
-            className="w-[14px] h-[14px] rounded-full flex items-center justify-center"
-            style={{ border: "1.5px solid var(--aw-accent)" }}
+            className="w-[15px] h-[15px] rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "var(--aw-accent)" }}
           >
-            <Icon d={icons.plus} size={8} color="var(--aw-accent)" />
+            <Icon d={icons.plus} size={9} color="rgba(0,0,0,0.75)" stroke={2.5} />
           </div>
           <span className="text-[10px] font-medium text-[color:var(--aw-text-3)] tracking-[0.07em] uppercase">
             Include
@@ -45,10 +45,10 @@ export function StylePicker({ tab, included, excluded, onToggleInclude, onToggle
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex items-center gap-[5px] flex-shrink-0 w-16">
           <div
-            className="w-[14px] h-[14px] rounded-full flex items-center justify-center"
-            style={{ border: "1.5px solid rgba(224,96,96,0.7)" }}
+            className="w-[15px] h-[15px] rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "rgba(220,80,80,0.85)" }}
           >
-            <Icon d={icons.close} size={8} color="rgba(224,96,96,0.8)" />
+            <Icon d={icons.close} size={9} color="white" stroke={2.5} />
           </div>
           <span className="text-[10px] font-medium text-[color:var(--aw-text-3)] tracking-[0.07em] uppercase">
             Exclude

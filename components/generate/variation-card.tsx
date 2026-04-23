@@ -13,12 +13,17 @@ interface VariationCardProps {
 
 export function VariationCard({ index, track }: VariationCardProps) {
   const { currentTrack, isPlaying, toggle } = usePlayerStore();
-  const playing = currentTrack?.id === track.id && isPlaying;
+
+  // Stable ID scoped to variation index — prevents two cards with the same
+  // backend track ID (happens when both variations share task_id) from
+  // triggering play state on each other.
+  const stableId = `variation-${track.id}-${index}`;
+  const playing = currentTrack?.id === stableId && isPlaying;
 
   const handlePlay = () => {
     if (!track.audio_url) return;
     toggle({
-      id: track.id,
+      id: stableId,
       title: track.title ?? `Variation ${index + 1}`,
       audioUrl: track.audio_url,
       duration: track.duration ? formatTime(track.duration) : undefined,
@@ -45,13 +50,13 @@ export function VariationCard({ index, track }: VariationCardProps) {
           <button
             onClick={handlePlay}
             disabled={!track.audio_url}
-            className="w-6 h-6 rounded-full bg-[color:var(--aw-accent)] flex items-center justify-center border-none cursor-pointer disabled:opacity-40"
+            className="w-6 h-6 rounded-full bg-[color:var(--aw-accent)] flex items-center justify-center border-none cursor-pointer disabled:opacity-40 transition-transform active:scale-90"
           >
             <Icon
-              d={playing ? icons.pause[0] : icons.play}
+              d={playing ? icons.pause : icons.play}
               size={10}
-              fill={playing ? "none" : "white"}
-              color="white"
+              fill="white"
+              color="none"
             />
           </button>
           <button
@@ -64,7 +69,7 @@ export function VariationCard({ index, track }: VariationCardProps) {
         </div>
       </div>
       <div className="h-9">
-        <Waveform bars={50} playing={playing} color="var(--aw-accent)" />
+        <Waveform bars={40} playing={playing} color="var(--aw-accent)" />
       </div>
       <div className="flex justify-between mt-[6px] text-[10px] text-[color:var(--aw-text-3)]">
         <span>0:00</span>
