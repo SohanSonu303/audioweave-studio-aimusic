@@ -50,6 +50,7 @@ export default function GeneratePage() {
   // Simulated progress: slowly ramp 10→75 during polling, snap to 100 on complete
   useEffect(() => {
     if (generating && taskId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProgress(10);
       progressInterval.current = setInterval(() => {
         setProgress((p) => (p < 75 ? p + 0.3 : p));
@@ -69,10 +70,13 @@ export default function GeneratePage() {
       allItems.every((t) => t.status === "COMPLETED" || t.status === "FAILED");
     if (allDone) {
       if (progressInterval.current) clearInterval(progressInterval.current);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProgress(100);
       setCompletedTracks(allItems.filter((t) => t.status === "COMPLETED"));
       queryClient.invalidateQueries({ queryKey: ["me"] });
     }
+  // queryClient is stable from useQueryClient, safe to omit
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pollData]);
 
   const handleGenerate = async () => {

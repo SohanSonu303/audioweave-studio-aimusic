@@ -87,8 +87,7 @@ export function Sidebar() {
         <div className="bg-[rgba(255,255,255,0.03)] border border-[color:var(--aw-border)] rounded-[10px] px-3 py-[10px] mb-2">
           <div className="flex justify-between items-baseline mb-[5px]">
             <span className="text-[11px] font-semibold text-[color:var(--aw-text)] tracking-[-0.01em]">
-              {remaining.toLocaleString()}{" "}
-              <span className="font-normal text-[color:var(--aw-text-3)] text-[10px]">/ {total.toLocaleString()}</span>
+              {remaining.toLocaleString()}
             </span>
             <span className="text-[10px] text-[color:var(--aw-accent)] font-medium capitalize">{planName}</span>
           </div>
