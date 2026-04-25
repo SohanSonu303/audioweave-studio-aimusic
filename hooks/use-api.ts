@@ -29,6 +29,8 @@ export function useApi() {
         withAuth((o) => api.get<T>(path, o), options) as Promise<T>,
       post: <T>(path: string, body?: unknown, options?: FetchOptions) =>
         withAuth((o) => api.post<T>(path, body, o), options) as Promise<T>,
+      put: <T>(path: string, body?: unknown, options?: FetchOptions) =>
+        withAuth((o) => api.put<T>(path, body, o), options) as Promise<T>,
       patch: <T>(path: string, body?: unknown, options?: FetchOptions) =>
         withAuth((o) => api.patch<T>(path, body, o), options) as Promise<T>,
       delete: <T>(path: string, options?: FetchOptions) =>

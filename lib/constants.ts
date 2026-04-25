@@ -1,5 +1,7 @@
 import { icons } from "@/components/ui/icon";
 
+export const TOKENS_PER_ALBUM_TRACK = 300;
+
 export const NAV = [
   { id: "home", label: "Home", href: "/", icon: icons.home },
   { id: "generate", label: "Generate", href: "/generate", icon: icons.bolt },

@@ -5,7 +5,7 @@ import { Waveform } from "@/components/audio/waveform";
 import { TrackThumbnail } from "@/components/audio/track-thumbnail";
 import { usePlayerStore } from "@/stores/player-store";
 import type { TrackItem } from "@/lib/api/library";
-import { formatTime } from "@/lib/utils";
+import { formatTime, downloadUrl } from "@/lib/utils";
 
 const TYPE_COLORS: Record<string, string> = {
   music: "#e8a055",
@@ -44,10 +44,8 @@ export function LibraryRow({ item, index }: LibraryRowProps) {
 
   const handleDownload = () => {
     if (!item.audio_url) return;
-    const a = document.createElement("a");
-    a.href = item.audio_url;
-    a.download = `${item.title ?? "track"}.mp3`;
-    a.click();
+    const fileName = `${(item.title || item.prompt || "track").slice(0, 30).replace(/[^a-z0-9]/gi, "_")}.mp3`;
+    downloadUrl(item.audio_url, fileName);
   };
 
   const musicStyle = item.music_style ?? "";
