@@ -60,7 +60,8 @@ export function usePlatforms(enabled = true) {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       await handleApiError(res);
-      return res.json() as Promise<PlatformProfile[]>;
+      const data = await res.json();
+      return (data.platforms || []) as PlatformProfile[];
     },
     staleTime: 10 * 60 * 1000,
     enabled,

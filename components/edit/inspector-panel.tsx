@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Scissors, Wind, Repeat, Split, Shuffle, Layers, BarChart3,
   Sun, Wand2, Crop, Crown, Target, Mic, Sparkles, Upload,
@@ -70,9 +70,8 @@ function SourceUpload({ label, hint, source, onSource }: SourceUploadProps) {
           <button
             key={m}
             onClick={() => setMode(m)}
-            className={`px-3 py-1 text-[10px] font-medium rounded-full uppercase tracking-wider transition-all ${
-              mode === m ? "bg-aw-accent text-black" : "text-aw-text-2 hover:text-aw-text"
-            }`}
+            className={`px-3 py-1 text-[10px] font-medium rounded-full uppercase tracking-wider transition-all ${mode === m ? "bg-aw-accent text-black" : "text-aw-text-2 hover:text-aw-text"
+              }`}
           >
             {m === "file" ? "Upload" : "URL"}
           </button>
@@ -132,9 +131,8 @@ function FormatToggle({
           <button
             key={fmt}
             onClick={() => onChange(fmt)}
-            className={`flex-1 py-2 text-[11px] rounded font-medium transition-all ${
-              value === fmt ? "bg-aw-accent text-black shadow-sm" : "text-aw-text-3 hover:text-aw-text-2"
-            }`}
+            className={`flex-1 py-2 text-[11px] rounded font-medium transition-all ${value === fmt ? "bg-aw-accent text-black shadow-sm" : "text-aw-text-3 hover:text-aw-text-2"
+              }`}
           >
             {fmt.toUpperCase()}
           </button>
@@ -234,8 +232,8 @@ function useOpExecutor() {
 
 function CutPanel() {
   const { primarySource, setPrimarySource } = useEditStore();
-  const [startMs, setStartMs] = useState(0);
-  const [endMs, setEndMs] = useState(5000);
+  const [startS, setStartS] = useState(0);
+  const [endS, setEndS] = useState(5);
   const [fmt, setFmt] = useState<"mp3" | "wav">("mp3");
   const { run, errorMsg } = useOpExecutor();
   const mut = useCut();
@@ -246,23 +244,23 @@ function CutPanel() {
       <hr className="border-aw-border" />
       <section className="flex flex-col gap-4">
         <div>
-          <label className={labelCls}>Start Time (ms)</label>
-          <input type="number" min={0} value={startMs} onChange={(e) => setStartMs(Number(e.target.value))} className={inputCls} />
+          <label className={labelCls}>Start Time (s)</label>
+          <input type="number" min={0} step={0.1} value={startS} onChange={(e) => setStartS(Number(e.target.value))} className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>End Time (ms)</label>
-          <input type="number" min={0} value={endMs} onChange={(e) => setEndMs(Number(e.target.value))} className={inputCls} />
+          <label className={labelCls}>End Time (s)</label>
+          <input type="number" min={0} step={0.1} value={endS} onChange={(e) => setEndS(Number(e.target.value))} className={inputCls} />
         </div>
       </section>
       <FormatToggle value={fmt} onChange={setFmt} />
       {errorMsg && <ErrorBar msg={errorMsg} />}
       <ExecButton
         label="Execute Cut" icon={Scissors}
-        disabled={!primarySource || endMs <= startMs}
+        disabled={!primarySource || endS <= startS}
         loading={mut.isPending}
         onClick={() => run("cut", () => mut.mutateAsync({
           source: primarySource!.kind === "file" ? primarySource!.file : primarySource!.url,
-          start_ms: startMs, end_ms: endMs, output_format: fmt,
+          start_ms: Math.round(startS * 1000), end_ms: Math.round(endS * 1000), output_format: fmt,
         }), "Cutting audio…")}
       />
     </div>
@@ -273,8 +271,8 @@ function CutPanel() {
 
 function FadePanel() {
   const { primarySource, setPrimarySource } = useEditStore();
-  const [fadeIn, setFadeIn] = useState(1000);
-  const [fadeOut, setFadeOut] = useState(1000);
+  const [fadeInS, setFadeInS] = useState(1);
+  const [fadeOutS, setFadeOutS] = useState(1);
   const [fmt, setFmt] = useState<"mp3" | "wav">("mp3");
   const { run, errorMsg } = useOpExecutor();
   const mut = useFade();
@@ -285,12 +283,12 @@ function FadePanel() {
       <hr className="border-aw-border" />
       <section className="flex flex-col gap-4">
         <div>
-          <label className={labelCls}>Fade In (ms)</label>
-          <input type="number" min={0} value={fadeIn} onChange={(e) => setFadeIn(Number(e.target.value))} className={inputCls} />
+          <label className={labelCls}>Fade In (s)</label>
+          <input type="number" min={0} step={0.1} value={fadeInS} onChange={(e) => setFadeInS(Number(e.target.value))} className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>Fade Out (ms)</label>
-          <input type="number" min={0} value={fadeOut} onChange={(e) => setFadeOut(Number(e.target.value))} className={inputCls} />
+          <label className={labelCls}>Fade Out (s)</label>
+          <input type="number" min={0} step={0.1} value={fadeOutS} onChange={(e) => setFadeOutS(Number(e.target.value))} className={inputCls} />
         </div>
       </section>
       <FormatToggle value={fmt} onChange={setFmt} />
@@ -301,7 +299,7 @@ function FadePanel() {
         loading={mut.isPending}
         onClick={() => run("fade", () => mut.mutateAsync({
           source: primarySource!.kind === "file" ? primarySource!.file : primarySource!.url,
-          fade_in_ms: fadeIn, fade_out_ms: fadeOut, output_format: fmt,
+          fade_in_ms: Math.round(fadeInS * 1000), fade_out_ms: Math.round(fadeOutS * 1000), output_format: fmt,
         }), "Applying fade…")}
       />
     </div>
@@ -334,7 +332,7 @@ function LoopPanel() {
         loading={mut.isPending}
         onClick={() => run("loop", () => mut.mutateAsync({
           source: primarySource!.kind === "file" ? primarySource!.file : primarySource!.url,
-          loop_count: loopCount, output_format: fmt,
+          count: loopCount, output_format: fmt,
         }), "Generating loop…")}
       />
     </div>
@@ -345,7 +343,7 @@ function LoopPanel() {
 
 function SplitPanel() {
   const { primarySource, setPrimarySource } = useEditStore();
-  const [splitMs, setSplitMs] = useState(30000);
+  const [splitS, setSplitS] = useState(30);
   const [fmt, setFmt] = useState<"mp3" | "wav">("mp3");
   const { run, errorMsg } = useOpExecutor();
   const mut = useSplit();
@@ -355,19 +353,18 @@ function SplitPanel() {
       <SourceUpload label="Source Audio" source={primarySource} onSource={setPrimarySource} />
       <hr className="border-aw-border" />
       <section>
-        <label className={labelCls}>Split Point (ms)</label>
-        <input type="number" min={0} value={splitMs} onChange={(e) => setSplitMs(Number(e.target.value))} className={inputCls} />
-        <p className="text-[10px] text-aw-text-3 mt-1">≈ {(splitMs / 1000).toFixed(1)}s from start</p>
+        <label className={labelCls}>Split Point (s)</label>
+        <input type="number" min={0} step={0.1} value={splitS} onChange={(e) => setSplitS(Number(e.target.value))} className={inputCls} />
       </section>
       <FormatToggle value={fmt} onChange={setFmt} />
       {errorMsg && <ErrorBar msg={errorMsg} />}
       <ExecButton
         label="Execute Split" icon={Split}
-        disabled={!primarySource || splitMs <= 0}
+        disabled={!primarySource || splitS <= 0}
         loading={mut.isPending}
         onClick={() => run("split", () => mut.mutateAsync({
           source: primarySource!.kind === "file" ? primarySource!.file : primarySource!.url,
-          split_time_ms: splitMs, output_format: fmt,
+          split_ms: Math.round(splitS * 1000), output_format: fmt,
         }), "Splitting audio…")}
       />
     </div>
@@ -380,7 +377,7 @@ function MixPanel() {
   const { primarySource, secondarySource, setPrimarySource, setSecondarySource } = useEditStore();
   const [gain1, setGain1] = useState(0);
   const [gain2, setGain2] = useState(-3);
-  const [crossfadeMs, setCrossfadeMs] = useState(0);
+  const [crossfadeS, setCrossfadeS] = useState(0);
   const [fmt, setFmt] = useState<"mp3" | "wav">("mp3");
   const { run, errorMsg } = useOpExecutor();
   const mut = useMix();
@@ -400,8 +397,8 @@ function MixPanel() {
           <input type="range" min={-12} max={6} step={0.5} value={gain2} onChange={(e) => setGain2(Number(e.target.value))} className="w-full accent-aw-accent" />
         </div>
         <div>
-          <label className={labelCls}>Crossfade (ms)</label>
-          <input type="number" min={0} max={5000} value={crossfadeMs} onChange={(e) => setCrossfadeMs(Number(e.target.value))} className={inputCls} />
+          <label className={labelCls}>Crossfade (s)</label>
+          <input type="number" min={0} max={5} step={0.1} value={crossfadeS} onChange={(e) => setCrossfadeS(Number(e.target.value))} className={inputCls} />
         </div>
       </section>
       <FormatToggle value={fmt} onChange={setFmt} />
@@ -413,7 +410,7 @@ function MixPanel() {
         onClick={() => run("mix", () => mut.mutateAsync({
           source1: primarySource!.kind === "file" ? primarySource!.file : primarySource!.url,
           source2: secondarySource!.kind === "file" ? secondarySource!.file : secondarySource!.url,
-          track1_gain_db: gain1, track2_gain_db: gain2, crossfade_ms: crossfadeMs, output_format: fmt,
+          track1_gain_db: gain1, track2_gain_db: gain2, crossfade_ms: Math.round(crossfadeS * 1000), output_format: fmt,
         }), "Mixing tracks…")}
       />
     </div>
@@ -424,7 +421,7 @@ function MixPanel() {
 
 function OverlayPanel() {
   const { primarySource, secondarySource, setPrimarySource, setSecondarySource } = useEditStore();
-  const [insertMs, setInsertMs] = useState(0);
+  const [insertS, setInsertS] = useState(0);
   const [gainDb, setGainDb] = useState(-6);
   const [fmt, setFmt] = useState<"mp3" | "wav">("mp3");
   const { run, errorMsg } = useOpExecutor();
@@ -437,8 +434,8 @@ function OverlayPanel() {
       <hr className="border-aw-border" />
       <section className="flex flex-col gap-4">
         <div>
-          <label className={labelCls}>Insert Point (ms)</label>
-          <input type="number" min={0} value={insertMs} onChange={(e) => setInsertMs(Number(e.target.value))} className={inputCls} />
+          <label className={labelCls}>Insert Point (s)</label>
+          <input type="number" min={0} step={0.1} value={insertS} onChange={(e) => setInsertS(Number(e.target.value))} className={inputCls} />
         </div>
         <div>
           <label className={labelCls}>Overlay Gain (dB): {gainDb >= 0 ? "+" : ""}{gainDb}</label>
@@ -454,7 +451,7 @@ function OverlayPanel() {
         onClick={() => run("overlay", () => mut.mutateAsync({
           base: primarySource!.kind === "file" ? primarySource!.file : primarySource!.url,
           overlay: secondarySource!.kind === "file" ? secondarySource!.file : secondarySource!.url,
-          insert_time_ms: insertMs, overlay_gain_db: gainDb, output_format: fmt,
+          position_ms: Math.round(insertS * 1000), overlay_gain_db: gainDb, output_format: fmt,
         }), "Overlaying audio…")}
       />
     </div>
@@ -463,36 +460,67 @@ function OverlayPanel() {
 
 // ─── EQ ───────────────────────────────────────────────────────────────────────
 
+const EQ_PRESETS = [
+  { label: "Low Shelf (200 Hz)", freq: 200 },
+  { label: "Low-Mid (500 Hz)", freq: 500 },
+  { label: "Mid Peak (1 kHz)", freq: 1000 },
+  { label: "Upper-Mid (2 kHz)", freq: 2000 },
+  { label: "Presence (4 kHz)", freq: 4000 },
+  { label: "High Shelf (8 kHz)", freq: 8000 },
+  { label: "Air (16 kHz)", freq: 16000 },
+];
+
 function EqPanel() {
   const { primarySource, setPrimarySource } = useEditStore();
-  const [low, setLow] = useState(0);
-  const [mid, setMid] = useState(0);
-  const [high, setHigh] = useState(0);
+  const [freq, setFreq] = useState(1000);
+  const [gain, setGain] = useState(0);
   const [fmt, setFmt] = useState<"mp3" | "wav">("mp3");
   const { run, errorMsg } = useOpExecutor();
   const mut = useEq();
-
-  const GainSlider = ({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) => (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <label className={labelCls + " mb-0"}>{label}</label>
-        <span className="text-[11px] text-aw-accent font-mono">{value >= 0 ? "+" : ""}{value} dB</span>
-      </div>
-      <input type="range" min={-12} max={12} step={0.5} value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-full accent-aw-accent" />
-      <div className="flex justify-between text-[9px] text-aw-text-3 mt-0.5">
-        <span>−12 dB</span><span>0</span><span>+12 dB</span>
-      </div>
-    </div>
-  );
 
   return (
     <div className="p-7 flex flex-col gap-6">
       <SourceUpload label="Source Audio" source={primarySource} onSource={setPrimarySource} />
       <hr className="border-aw-border" />
       <section className="flex flex-col gap-5">
-        <GainSlider label="Low Shelf (~200 Hz)" value={low} onChange={setLow} />
-        <GainSlider label="Mid Peak (~2 kHz)" value={mid} onChange={setMid} />
-        <GainSlider label="High Shelf (~8 kHz)" value={high} onChange={setHigh} />
+        <div>
+          <label className={labelCls}>Frequency Band</label>
+          <div className="relative">
+            <select
+              value={freq}
+              onChange={(e) => setFreq(Number(e.target.value))}
+              className={selectCls}
+            >
+              {EQ_PRESETS.map((p) => (
+                <option key={p.freq} value={p.freq}>{p.label}</option>
+              ))}
+              <option value={freq} hidden>{freq} Hz (custom)</option>
+            </select>
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-aw-text-3" />
+          </div>
+          <div className="flex gap-2 mt-2 items-center">
+            <input
+              type="number"
+              min={20}
+              max={20000}
+              step={1}
+              value={freq}
+              onChange={(e) => setFreq(Number(e.target.value))}
+              className={inputCls + " font-mono"}
+            />
+            <span className="text-[11px] text-aw-text-3 shrink-0">Hz</span>
+          </div>
+        </div>
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className={labelCls + " mb-0"}>Gain</label>
+            <span className="text-[11px] text-aw-accent font-mono">{gain >= 0 ? "+" : ""}{gain} dB</span>
+          </div>
+          <input type="range" min={-12} max={12} step={0.5} value={gain} onChange={(e) => setGain(Number(e.target.value))} className="w-full accent-aw-accent" />
+          <div className="flex justify-between text-[9px] text-aw-text-3 mt-0.5">
+            <span>−12 dB</span><span>0</span><span>+12 dB</span>
+          </div>
+        </div>
       </section>
       <FormatToggle value={fmt} onChange={setFmt} />
       {errorMsg && <ErrorBar msg={errorMsg} />}
@@ -502,7 +530,7 @@ function EqPanel() {
         loading={mut.isPending}
         onClick={() => run("eq", () => mut.mutateAsync({
           source: primarySource!.kind === "file" ? primarySource!.file : primarySource!.url,
-          low_gain_db: low, mid_gain_db: mid, high_gain_db: high, output_format: fmt,
+          freq, gain, output_format: fmt,
         }), "Applying EQ…")}
       />
     </div>
@@ -846,9 +874,23 @@ function AutoTrimPanel() {
 // ─── MASTER ───────────────────────────────────────────────────────────────────
 
 function MasterPanelFull() {
-  const { primarySource, setPrimarySource, masterOutputFormat, setMasterOutputFormat, setProcessing, setResult, result } = useEditStore();
+  const {
+    primarySource, setPrimarySource,
+    masterOutputFormat, setMasterOutputFormat,
+    masterSelectedPlatform, setMasterSelectedPlatform,
+    setProcessing, setResult, result
+  } = useEditStore();
+
+  const { data: platforms } = usePlatforms();
   const masterMut = useMasterProcess();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (platforms && !masterSelectedPlatform) {
+      const def = platforms.find(p => p.id === "spotify")?.id || platforms[0]?.id;
+      if (def) setMasterSelectedPlatform(def);
+    }
+  }, [platforms, masterSelectedPlatform, setMasterSelectedPlatform]);
 
   const handleMaster = async () => {
     if (!primarySource) return;
@@ -856,7 +898,11 @@ function MasterPanelFull() {
     setProcessing(true, "Mastering audio…");
     try {
       const src = primarySource.kind === "file" ? primarySource.file : primarySource.url;
-      const res = await masterMut.mutateAsync({ source: src, platform: "streaming", output_format: masterOutputFormat });
+      const res = await masterMut.mutateAsync({
+        source: src,
+        platform: masterSelectedPlatform || "spotify",
+        output_format: masterOutputFormat
+      });
       const blob = decodeAudioB64(res.audio_b64, res.audio_format);
       const blobUrl = URL.createObjectURL(blob);
       if (result?.blobUrl) URL.revokeObjectURL(result.blobUrl);
@@ -869,7 +915,26 @@ function MasterPanelFull() {
   return (
     <div className="p-7 flex flex-col gap-6">
       <SourceUpload label="Source Audio" source={primarySource} onSource={setPrimarySource} />
-      <hr className="border-aw-border" />
+      <section>
+        <label className={labelCls}>Target Platform</label>
+        <div className="relative">
+          <select
+            value={masterSelectedPlatform || ""}
+            onChange={(e) => setMasterSelectedPlatform(e.target.value)}
+            className={selectCls}
+          >
+            {platforms?.map((p) => (
+              <option key={p.id} value={p.id}>{p.name} ({p.target_lufs} LUFS)</option>
+            )) || (
+              ['spotify', 'youtube', 'tiktok', 'podcast', 'apple', 'soundcloud'].map(p => (
+                <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+              ))
+            )}
+          </select>
+          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-aw-text-3" />
+        </div>
+      </section>
+
       <FormatToggle value={masterOutputFormat} onChange={setMasterOutputFormat} />
 
       {report && (
@@ -1188,32 +1253,94 @@ const OP_LABEL: Record<OperationType, string> = {
   eq: "EQ", ai_warmth: "AI Warmth", style_enhance: "Style Enhance", auto_trim: "Auto Trim",
   master: "Master", reference_match: "Reference Match", podcast: "Podcast",
 };
+
+const OP_DESCRIPTION: Record<OperationType, string> = {
+  cut: "Trim your audio to a precise time range. Set start and end points to extract the exact section you need.",
+  fade: "Smoothly ease audio in and out. Set fade-in and fade-out durations for seamless transitions.",
+  loop: "Repeat your audio clip multiple times. Perfect for creating seamless loops and extending short samples.",
+  split: "Divide audio into two parts at a precise timestamp. Great for isolating intros, verses, or outros.",
+  mix: "Blend two audio tracks together with independent volume control and optional crossfade between them.",
+  overlay: "Layer a secondary clip on top of a base track at a specific point, with adjustable overlay volume.",
+  eq: "Shape your sound with a 3-band equaliser. Boost or cut lows, mids, and highs to sculpt the tone.",
+  ai_warmth: "Add analog warmth and subtle saturation using AI. Emulates vintage tape and tube character.",
+  style_enhance: "Apply AI-driven genre presets to transform your track's sonic character — Lo-Fi, EDM, Cinematic, and more.",
+  auto_trim: "Intelligently find and extract the best section of your audio using AI-powered beat and energy analysis.",
+  master: "Professional AI mastering for music platforms ( Spotify, Apple Music, youtube, etc.) — optimise loudness, dynamics, and clarity for any streaming platform.",
+  reference_match: "Match your track's tonal profile to a reference song using AI, or describe the vibe you want.",
+  podcast: "AI-powered podcast production — enhance speech, reduce noise, and balance multi-speaker audio.",
+};
+
 const AI_OPS: OperationType[] = ["ai_warmth", "style_enhance", "auto_trim", "master", "reference_match", "podcast"];
 
 function BodyForOp({ op }: { op: OperationType }) {
   switch (op) {
-    case "cut":             return <CutPanel />;
-    case "fade":            return <FadePanel />;
-    case "loop":            return <LoopPanel />;
-    case "split":           return <SplitPanel />;
-    case "mix":             return <MixPanel />;
-    case "overlay":         return <OverlayPanel />;
-    case "eq":              return <EqPanel />;
-    case "ai_warmth":       return <AiWarmthPanel />;
-    case "style_enhance":   return <StyleEnhancePanel />;
-    case "auto_trim":       return <AutoTrimPanel />;
-    case "master":          return <MasterPanelFull />;
+    case "cut": return <CutPanel />;
+    case "fade": return <FadePanel />;
+    case "loop": return <LoopPanel />;
+    case "split": return <SplitPanel />;
+    case "mix": return <MixPanel />;
+    case "overlay": return <OverlayPanel />;
+    case "eq": return <EqPanel />;
+    case "ai_warmth": return <AiWarmthPanel />;
+    case "style_enhance": return <StyleEnhancePanel />;
+    case "auto_trim": return <AutoTrimPanel />;
+    case "master": return <MasterPanelFull />;
     case "reference_match": return <ReferenceMatchPanel />;
-    case "podcast":         return <PodcastPanel />;
+    case "podcast": return <PodcastPanel />;
   }
 }
 
 export function InspectorPanel() {
   const { selectedOperation } = useEditStore();
   const isAi = AI_OPS.includes(selectedOperation);
+  const [width, setWidth] = useState(340);
+  const isResizing = useRef(false);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizing.current) return;
+    const newWidth = window.innerWidth - e.clientX;
+    if (newWidth >= 300 && newWidth <= 600) {
+      setWidth(newWidth);
+    }
+  }, []);
+
+  const stopResizing = useCallback(() => {
+    isResizing.current = false;
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", stopResizing);
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+  }, [handleMouseMove]);
+
+  const startResizing = useCallback(() => {
+    isResizing.current = true;
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", stopResizing);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, [handleMouseMove, stopResizing]);
+
+  useEffect(() => {
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", stopResizing);
+    };
+  }, [handleMouseMove, stopResizing]);
 
   return (
-    <aside className="w-[340px] border-l border-aw-border flex flex-col shrink-0" style={{ background: "#0a0a0a" }}>
+    <aside
+      className="border-l border-aw-border flex flex-col shrink-0 relative"
+      style={{ background: "#0a0a0a", width: `${width}px` }}
+    >
+      {/* Resize Handle */}
+      <div
+        onMouseDown={startResizing}
+        className="absolute left-[-2px] top-0 bottom-0 w-4 cursor-col-resize z-50 group"
+      >
+        <div className="absolute left-[1px] top-0 bottom-0 w-[1px] bg-transparent group-hover:bg-aw-accent/30 transition-colors" />
+        <div className="absolute left-[1px] top-1/2 -translate-y-1/2 w-[2px] h-12 bg-aw-border group-hover:bg-aw-accent rounded-full opacity-0 group-hover:opacity-100 transition-all" />
+      </div>
+
       {/* Header */}
       <div className="px-7 py-6 border-b border-aw-border">
         <h3 className="font-display text-[22px] text-aw-text mb-1 leading-none">Track Inspector</h3>
@@ -1223,6 +1350,9 @@ export function InspectorPanel() {
         >
           {isAi && <Sparkles size={9} />}
           {OP_LABEL[selectedOperation]} Operation
+        </p>
+        <p className="text-[11px] text-aw-text-3 leading-relaxed mt-2.5">
+          {OP_DESCRIPTION[selectedOperation]}
         </p>
       </div>
 

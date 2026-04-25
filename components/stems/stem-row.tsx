@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Icon } from "@/components/ui/icon";
-import { Waveform } from "@/components/audio/waveform";
+import { useWaveSurfer } from "@/hooks/use-wavesurfer";
 
 export interface StemDef {
   id: string;
@@ -45,33 +45,48 @@ export function StemRow({
   syncTime,
 }: StemRowProps) {
   const [stemRowHovered, setStemRowHovered] = useState(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const { wavesurfer, duration, currentTime } = useWaveSurfer({
+    containerRef,
+    audioSrc: audioUrl || undefined,
+    height: 48,
+    barWidth: 2,
+    barGap: 1,
+    progressColor: stem.color,
+  });
+
+  // Report duration and time updates
+  useEffect(() => {
+    if (duration > 0 && onDurationLoad) onDurationLoad(duration);
+  }, [duration, onDurationLoad]);
+
+  useEffect(() => {
+    if (onTimeUpdate) onTimeUpdate(currentTime);
+  }, [currentTime, onTimeUpdate]);
 
   // Sync playing state
   useEffect(() => {
-    if (!audioRef.current || !audioUrl) return;
+    if (!wavesurfer) return;
     if (playing) {
-      audioRef.current.play().catch(() => {
-          // Play might be blocked by browser if not triggered by user interaction
-          // Page.tsx handles the master toggle which should satisfy the browser
-      });
+      wavesurfer.play().catch(() => {});
     } else {
-      audioRef.current.pause();
+      wavesurfer.pause();
     }
-  }, [playing, audioUrl]);
+  }, [playing, wavesurfer]);
 
-  // Sync volume and audible state (gain control)
+  // Sync volume and audible state
   useEffect(() => {
-    if (!audioRef.current) return;
-    audioRef.current.volume = (volume / 100) * (audible ? 1 : 0);
-  }, [volume, audible]);
+    if (!wavesurfer) return;
+    wavesurfer.setVolume((volume / 100) * (audible ? 1 : 0));
+  }, [volume, audible, wavesurfer]);
 
   // Sync seek (external seek from master)
   useEffect(() => {
-    if (syncTime !== null && syncTime !== undefined && audioRef.current) {
-      audioRef.current.currentTime = syncTime;
+    if (syncTime !== null && syncTime !== undefined && wavesurfer) {
+      wavesurfer.setTime(syncTime);
     }
-  }, [syncTime]);
+  }, [syncTime, wavesurfer]);
 
   return (
     <div
@@ -83,19 +98,6 @@ export function StemRow({
         opacity: audible ? 1 : 0.3,
       }}
     >
-      {/* Hidden Audio Element */}
-      {audioUrl && (
-        <audio
-          ref={audioRef}
-          src={audioUrl}
-          onLoadedMetadata={(e) => onDurationLoad?.(e.currentTarget.duration)}
-          onTimeUpdate={(e) => onTimeUpdate?.(e.currentTarget.currentTime)}
-          onEnded={() => {
-              // Can handle loop or stop here
-          }}
-        />
-      )}
-
       {/* Stem label */}
       <div className="flex items-center gap-[10px]">
         <div
@@ -119,12 +121,8 @@ export function StemRow({
       </div>
 
       {/* Waveform with playhead */}
-      <div className="h-12 pr-5 relative">
-        <Waveform bars={90} playing={playing && audible} color={stem.color} dim={!audible} />
-        <div
-          className="absolute top-0 bottom-0 w-[1px] bg-[rgba(255,255,255,0.4)] pointer-events-none"
-          style={{ left: `${playhead}%`, transform: "translateX(-50%)" }}
-        />
+      <div className="h-12 pr-5 relative flex items-center">
+        <div ref={containerRef} className="w-full h-full" style={{ opacity: audible ? 1 : 0.5 }} />
       </div>
 
       {/* Volume slider */}

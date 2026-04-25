@@ -54,37 +54,85 @@ app/                  # Next.js App Router
   library/            # /library
   album/              # /album
   stems/              # /stems
+  edit/               # /edit — audio editing workspace
   subscription/       # /subscription
 
 components/
   ui/                 # shadcn primitives + our additions (icon, pill, segmented, drop-zone)
-  audio/              # waveform, play-button, track-thumbnail
+  audio/              # waveform, play-button, track-thumbnail, player-bar
   layout/             # sidebar, app-shell, tweaks-panel
   home/               # announcement-banner, greeting, quick-tool-grid, recent-list, quick-start, credits-summary
   generate/           # generate-header, lyrics-card, prompt-bar, style-picker, generating-card, variation-card, history-panel
   library/            # library-header, library-table, library-row
   album/              # script-input, empty-state, analyzing, scene-timeline, scene-card, export-footer
   stems/              # stems-header, track-info-bar, playback-bar, stem-row
+  edit/               # tool-console, inspector-panel, playback-deck, track-header,
+                      # source-waveform, result-waveform, waveform-timeline,
+                      # candidate-card, empty-state, trim-loading-overlay
   subscription/       # credits-cards, plan-card
 
 lib/
   api/                # React Query hooks, one file per backend resource
                       # client.ts, generations.ts, library.ts, album.ts, stems.ts, subscription.ts
+                      # auto-edit.ts, edit-ops.ts, master.ts, podcast.ts, reference-match.ts
   types.ts            # Shared TS types (mirror FastAPI schemas)
   constants.ts        # STYLE_TAGS, STEMS, PLANS, NAV
   utils.ts            # cn(), formatTime(), getGreeting()
+  audio-source-form-data.ts  # Helper: builds FormData from File or URL string
 
 stores/               # Zustand — UI state only
   player-store.ts     # Current track, isPlaying, playhead
   ui-store.ts         # Sidebar collapsed, tweaks-panel open, accent override
-  generate-draft-store.ts  # Draft prompt/styles (persists across nav)
+  generate-draft-store.ts   # Draft prompt/styles (persists across nav)
+  edit-store.ts       # Edit page: selected op, sources, result, A/B mode, analysis/preview state
 
 hooks/                # Cross-cutting React hooks (use-player, use-waveform)
+  use-edit-ab-player.ts  # A/B waveform player sync for the Edit page
 
 public/               # Static assets
 ```
 
 **Placement rule:** page-scoped components live under their page's folder. Anything used by 2+ pages moves to `audio/`, `layout/`, or `ui/`.
+
+## Features implemented
+
+### Edit Page (`/edit`)
+Full audio editing workspace. Three-panel layout: Tool Console (left) → waveform canvas (center) → Inspector Panel (right), with a Playback Deck at the bottom.
+
+**Operations available (`stores/edit-store.ts` → `OperationType`):**
+- `auto_trim` — AI-powered beat-aware trim (analyze → preview → trim flow via `/auto-edit/*`)
+- `cut` / `fade` / `loop` / `split` — basic destructive edits via `/test-edit/*`
+- `mix` / `overlay` — multi-source operations
+- `eq` / `ai_warmth` / `style_enhance` — audio enhancement
+- `master` — platform-targeted LUFS mastering via `/master/*`
+- `reference_match` — EQ/dynamics match to a reference track via `/reference-match/*`
+- `podcast` — speech + music ducking production via `/podcast/produce`
+
+**A/B comparison:** `use-edit-ab-player.ts` syncs two WaveSurfer instances (source vs. result). Toggling A/B keeps playhead position aligned across the window boundary.
+
+**Source inputs:** every operation accepts either a `File` (upload) or a URL string. `lib/audio-source-form-data.ts` normalises this into `FormData` for every API call.
+
+**Edit store** (`stores/edit-store.ts`): Zustand — holds selected op, primary/secondary sources, processing state, result blob, A/B mode, auto-trim analysis/preview data, and master platform selection. Operation change resets all per-op state and generates a new `projectId`.
+
+### Auto-Edit / AI Trim (`lib/api/auto-edit.ts`)
+Four-step AI trim flow against `/auto-edit/*`:
+1. `useSuggest` — LLM infers target duration + energy preference from a plain-English description.
+2. `useAnalyze` — BPM detection, beat grid, segment labels, scored candidate windows.
+3. `usePreview` — AI agent picks the best window with plain-English reasoning.
+4. `useTrim` — executes the trim (with optional beat-aligned crossfade), returns base64 audio + metadata.
+
+### Mastering (`lib/api/master.ts`)
+- `usePlatforms` — fetches available platform profiles (Spotify, YouTube, etc.) with LUFS targets.
+- `useMasterProcess` — processes audio against a selected platform profile.
+- `useMasterSave` — persists the mastered file to the backend.
+
+### Reference Match (`lib/api/reference-match.ts`)
+- `useRefMatchAnalyze` — fingerprints a reference track (BPM, key, mode, EQ projection).
+- `useRefMatchProcess` — applies EQ + dynamics to make a target track match the reference.
+- `useVibePrompt` — generates a music generation prompt from a reference track's fingerprint.
+
+### Podcast Production (`lib/api/podcast.ts`)
+- `usePodcastProduce` — combines speech + optional music with noise reduction, voice EQ, and configurable music ducking.
 
 ## Locked decisions (don't re-litigate)
 
@@ -100,6 +148,8 @@ Full rationale in [plan.md](plan.md) § Resolved decisions. Summary so future se
 - **Desktop-only** for v1. Fixed 200px sidebar, `body { overflow: hidden }`, min width ~1024px.
 - **Tweaks panel dropped.** Theme is fixed.
 - **Marketplace** and **Album Composer** are real product names / real routes.
+- **Edit API responses** can be either JSON (`{audio_b64, audio_format}`) or raw binary audio. `parseEditResponse` in `lib/api/edit-ops.ts` handles both transparently.
+- **Edit operations reset state on op change** — switching the selected operation clears sources, result, analysis, and generates a fresh `projectId`. This is intentional; do not persist cross-op state in `edit-store`.
 
 ## Commands
 

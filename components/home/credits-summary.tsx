@@ -29,7 +29,7 @@ export function CreditsSummary() {
         />
       </div>
       <div className="text-[10px] text-[color:var(--aw-text-3)]">
-        {remaining.toLocaleString()} credits left · {planName} Plan
+        {remaining.toLocaleString()} / {total.toLocaleString()} credits · {planName} Plan
       </div>
     </div>
   );

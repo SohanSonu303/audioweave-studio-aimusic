@@ -111,15 +111,15 @@ export function useLoop() {
   const { getToken } = useAuth();
   return useMutation({
     mutationFn: async ({
-      source, loop_count, output_format = "mp3",
+      source, count, output_format = "mp3",
     }: {
       source: File | string;
-      loop_count: number;
+      count: number;
       output_format?: "mp3" | "wav";
     }) => {
       const fd = new FormData();
       appendSource(fd, source);
-      fd.append("loop_count", loop_count.toString());
+      fd.append("count", count.toString());
       fd.append("output_format", output_format);
       const token = await getToken();
       const res = await fetch(`${API_BASE}/test-edit/loop`, {
@@ -139,15 +139,15 @@ export function useSplit() {
   const { getToken } = useAuth();
   return useMutation({
     mutationFn: async ({
-      source, split_time_ms, output_format = "mp3",
+      source, split_ms, output_format = "mp3",
     }: {
       source: File | string;
-      split_time_ms: number;
+      split_ms: number;
       output_format?: "mp3" | "wav";
     }) => {
       const fd = new FormData();
       appendSource(fd, source);
-      fd.append("split_time_ms", split_time_ms.toString());
+      fd.append("split_ms", split_ms.toString());
       fd.append("output_format", output_format);
       const token = await getToken();
       const res = await fetch(`${API_BASE}/test-edit/split`, {
@@ -202,18 +202,18 @@ export function useOverlay() {
   const { getToken } = useAuth();
   return useMutation({
     mutationFn: async ({
-      base, overlay, insert_time_ms, overlay_gain_db = -6, output_format = "mp3",
+      base, overlay, position_ms, overlay_gain_db = -6, output_format = "mp3",
     }: {
       base: File | string;
       overlay: File | string;
-      insert_time_ms: number;
+      position_ms: number;
       overlay_gain_db?: number;
       output_format?: "mp3" | "wav";
     }) => {
       const fd = new FormData();
       appendSource(fd, base, "file1");
       appendSource(fd, overlay, "file2");
-      fd.append("insert_time_ms", insert_time_ms.toString());
+      fd.append("position_ms", position_ms.toString());
       fd.append("overlay_gain_db", overlay_gain_db.toString());
       fd.append("output_format", output_format);
       const token = await getToken();
@@ -234,19 +234,17 @@ export function useEq() {
   const { getToken } = useAuth();
   return useMutation({
     mutationFn: async ({
-      source, low_gain_db = 0, mid_gain_db = 0, high_gain_db = 0, output_format = "mp3",
+      source, freq, gain, output_format = "mp3",
     }: {
       source: File | string;
-      low_gain_db?: number;
-      mid_gain_db?: number;
-      high_gain_db?: number;
+      freq: number;
+      gain: number;
       output_format?: "mp3" | "wav";
     }) => {
       const fd = new FormData();
       appendSource(fd, source);
-      fd.append("low_gain_db", low_gain_db.toString());
-      fd.append("mid_gain_db", mid_gain_db.toString());
-      fd.append("high_gain_db", high_gain_db.toString());
+      fd.append("freq", freq.toString());
+      fd.append("gain", gain.toString());
       fd.append("output_format", output_format);
       const token = await getToken();
       const res = await fetch(`${API_BASE}/test-edit/eq`, {

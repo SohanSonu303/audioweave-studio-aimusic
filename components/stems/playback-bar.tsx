@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon, icons } from "@/components/ui/icon";
+import { Play, Pause } from "lucide-react";
 
 interface PlaybackBarProps {
   playing: boolean;
@@ -19,12 +20,11 @@ export function PlaybackBar({ playing, onPlayToggle, playhead, onSeek, currentTi
         className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0"
         style={{ background: "rgba(255,255,255,0.09)", border: "1px solid var(--aw-border-md)" }}
       >
-        <Icon
-          d={playing ? icons.pause[0] : icons.play}
-          size={12}
-          fill={playing ? "none" : "rgba(255,255,255,0.8)"}
-          color="rgba(255,255,255,0.8)"
-        />
+        {playing ? (
+          <Pause size={14} fill="currentColor" color="rgba(255,255,255,0.8)" />
+        ) : (
+          <Play size={14} fill="currentColor" color="rgba(255,255,255,0.8)" className="translate-x-[1px]" />
+        )}
       </button>
       <span
         className="text-[11px] text-[color:var(--aw-text-3)] w-[34px]"
