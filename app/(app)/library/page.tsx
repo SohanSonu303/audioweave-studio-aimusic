@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { LibraryHeader } from "@/components/library/library-header";
 import { LibraryTable } from "@/components/library/library-table";
 import { PlayerBar } from "@/components/audio/player-bar";
@@ -53,8 +53,7 @@ export default function LibraryPage() {
     return matchFilter && matchSearch;
   });
 
-  // Reset to page 1 whenever filter/search changes
-  useEffect(() => { setPage(1); }, [filter, search, tab]);
+  // safePage below clamps to available pages when filter/search/tab changes
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);

@@ -9,9 +9,10 @@ interface DropZoneProps {
   accept?: string;
   hint?: string;
   className?: string;
+  compact?: boolean;
 }
 
-export function DropZone({ onFiles, accept = "audio/*", hint = "MP3, WAV, FLAC, AIFF · up to 200MB", className }: DropZoneProps) {
+export function DropZone({ onFiles, accept = "audio/*", hint = "MP3, WAV, FLAC, AIFF · up to 200MB", className, compact }: DropZoneProps) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -34,7 +35,8 @@ export function DropZone({ onFiles, accept = "audio/*", hint = "MP3, WAV, FLAC, 
       onDragLeave={() => setDragging(false)}
       onClick={() => inputRef.current?.click()}
       className={cn(
-        "flex flex-col items-center text-center cursor-pointer rounded-[20px] px-20 py-[60px] transition-all duration-200 border-2 border-dashed",
+        "flex flex-col items-center text-center cursor-pointer transition-all duration-200 border-2 border-dashed",
+        compact ? "rounded-xl px-4 py-4" : "rounded-[20px] px-20 py-[60px]",
         dragging
           ? "border-[color:var(--aw-accent)] bg-[color:var(--aw-warm)]"
           : "border-[rgba(255,255,255,0.12)] bg-transparent",
@@ -50,22 +52,30 @@ export function DropZone({ onFiles, accept = "audio/*", hint = "MP3, WAV, FLAC, 
         onChange={handleChange}
       />
 
-      <div className="w-[52px] h-[52px] rounded-full bg-[rgba(255,255,255,0.05)] border border-[color:var(--aw-border)] flex items-center justify-center mb-4">
-        <Icon d={icons.upload} size={22} color="var(--aw-text-3)" />
-      </div>
-
-      <p className="font-[family-name:var(--font-display)] font-light text-[22px] mb-1.5 text-[color:var(--aw-text)]">
-        Drop your audio here
-      </p>
-      <p className="text-[12px] text-[color:var(--aw-text-3)] mb-5">{hint}</p>
-
-      <button
-        type="button"
-        className="px-[22px] py-[9px] rounded-[var(--radius-pill)] text-[12px] font-medium bg-[rgba(255,255,255,0.07)] text-[color:var(--aw-text-2)] border border-[color:var(--aw-border-md)] cursor-pointer"
-        onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
-      >
-        Browse files
-      </button>
+      {compact ? (
+        <div className="flex items-center gap-2 text-aw-text-3">
+          <Icon d={icons.upload} size={14} color="var(--aw-text-3)" />
+          <span className="text-[12px]">Drop audio or <span className="underline">browse</span></span>
+          {hint && <span className="text-[10px] text-aw-text-3 opacity-60">· {hint}</span>}
+        </div>
+      ) : (
+        <>
+          <div className="w-[52px] h-[52px] rounded-full bg-[rgba(255,255,255,0.05)] border border-[color:var(--aw-border)] flex items-center justify-center mb-4">
+            <Icon d={icons.upload} size={22} color="var(--aw-text-3)" />
+          </div>
+          <p className="font-[family-name:var(--font-display)] font-light text-[22px] mb-1.5 text-[color:var(--aw-text)]">
+            Drop your audio here
+          </p>
+          <p className="text-[12px] text-[color:var(--aw-text-3)] mb-5">{hint}</p>
+          <button
+            type="button"
+            className="px-[22px] py-[9px] rounded-[var(--radius-pill)] text-[12px] font-medium bg-[rgba(255,255,255,0.07)] text-[color:var(--aw-text-2)] border border-[color:var(--aw-border-md)] cursor-pointer"
+            onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
+          >
+            Browse files
+          </button>
+        </>
+      )}
     </div>
   );
 }
