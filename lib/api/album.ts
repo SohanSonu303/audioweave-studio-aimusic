@@ -57,7 +57,7 @@ export function useAlbumPlanningPoll(albumId: string | null) {
     enabled: !!albumId,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      return status === "PLANNING" || status === "GENERATING" ? 4000 : false;
+      return status === "PLANNING" || status === "GENERATING" ? 10_000 : false;
     },
   });
 }
@@ -71,7 +71,7 @@ export function useAlbumProgress(albumId: string | null) {
     enabled: !!albumId,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      return status === "GENERATING" || status === "PLANNING" ? 5000 : false;
+      return status === "GENERATING" || status === "PLANNING" ? 10_000 : false;
     },
   });
 }

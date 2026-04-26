@@ -1,11 +1,14 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import { Icon, icons } from "@/components/ui/icon";
 import { Waveform } from "@/components/audio/waveform";
 import { TrackThumbnail } from "@/components/audio/track-thumbnail";
 import { usePlayerStore } from "@/stores/player-store";
 import type { TrackItem } from "@/lib/api/library";
 import { formatTime, downloadUrl } from "@/lib/utils";
+
+const GRID_STYLE = { gridTemplateColumns: "32px 1fr 1fr 180px 60px 80px 80px" } as const;
 
 const TYPE_COLORS: Record<string, string> = {
   music: "#e8a055",
@@ -26,10 +29,14 @@ interface LibraryRowProps {
   index: number;
 }
 
-export function LibraryRow({ item, index }: LibraryRowProps) {
-  const { currentTrack, isPlaying, toggle } = usePlayerStore();
-  const playing = currentTrack?.id === item.id && isPlaying;
+function LibraryRowInner({ item, index }: LibraryRowProps) {
+  const playing = usePlayerStore((s) => s.currentTrack?.id === item.id && s.isPlaying);
+  const toggle = usePlayerStore((s) => s.toggle);
   const color = TYPE_COLORS[item.type] ?? "#e8a055";
+  const playBtnStyle = useMemo(() => ({
+    background: playing ? color : "rgba(255,255,255,0.07)",
+    border: `1px solid ${playing ? color : "rgba(255,255,255,0.1)"}`,
+  }), [playing, color]);
 
   const handlePlay = () => {
     if (!item.audio_url) return;
@@ -55,7 +62,7 @@ export function LibraryRow({ item, index }: LibraryRowProps) {
   return (
     <div
       className="grid items-center gap-0 px-5 py-[7px] border-b border-[rgba(255,255,255,0.04)] transition-colors duration-100 cursor-default"
-      style={{ gridTemplateColumns: "32px 1fr 1fr 180px 60px 80px 80px" }}
+      style={GRID_STYLE}
       onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
     >
@@ -64,10 +71,7 @@ export function LibraryRow({ item, index }: LibraryRowProps) {
         onClick={handlePlay}
         disabled={!item.audio_url}
         className="w-[26px] h-[26px] rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 transition-all duration-150 disabled:opacity-40"
-        style={{
-          background: playing ? color : "rgba(255,255,255,0.07)",
-          border: `1px solid ${playing ? color : "rgba(255,255,255,0.1)"}`,
-        }}
+        style={playBtnStyle}
       >
         <Icon
           d={playing ? icons.pause : icons.play}
@@ -122,3 +126,5 @@ export function LibraryRow({ item, index }: LibraryRowProps) {
     </div>
   );
 }
+
+export const LibraryRow = memo(LibraryRowInner);

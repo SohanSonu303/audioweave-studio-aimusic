@@ -19,7 +19,7 @@ export function useGenerateMusic() {
   return useMutation({
     mutationFn: (body: MusicCreate) =>
       api.post<MusicResponse[]>("/music/generateMusic", body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"], refetchType: "none" }),
   });
 }
 
@@ -32,7 +32,7 @@ export function useGeneration(id: string | null) {
     enabled: !!id,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      return status === "pending" || status === "processing" ? 2000 : false;
+      return status === "pending" || status === "processing" ? 10_000 : false;
     },
   });
 }
@@ -44,7 +44,7 @@ export function useGenerateSound() {
   return useMutation({
     mutationFn: (body: SoundCreate) =>
       api.post<SoundResponse>("/sound_generator/", body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"], refetchType: "none" }),
   });
 }
 
@@ -55,7 +55,7 @@ export function useRemix() {
   return useMutation({
     mutationFn: (body: RemixCreate) =>
       api.post<MusicResponse>("/music/remix", body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"], refetchType: "none" }),
   });
 }
 

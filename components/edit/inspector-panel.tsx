@@ -999,6 +999,8 @@ function ReferenceMatchPanel() {
   const [analyzeResult, setAnalyzeResult] = useState<{ reference_fingerprint: { bpm: number; key: string; mode: string } } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); }, []);
 
   const analyzeMut = useRefMatchAnalyze();
   const processMut = useRefMatchProcess();
@@ -1050,7 +1052,8 @@ function ReferenceMatchPanel() {
     if (!vibePrompt) return;
     navigator.clipboard.writeText(vibePrompt);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
   };
 
   return (

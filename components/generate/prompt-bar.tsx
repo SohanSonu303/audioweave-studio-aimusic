@@ -41,8 +41,8 @@ export function PromptBar({
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onGenerate();
         }}
         placeholder={PLACEHOLDERS[tab]}
-        rows={2}
-        className="w-full bg-transparent border-none outline-none resize-none text-[color:var(--aw-text)] text-[14px] leading-[1.6] tracking-[0.01em] mb-[10px] placeholder:text-[color:var(--aw-text-3)]"
+        rows={4}
+        className="w-full bg-transparent border-none outline-none resize-y min-h-[64px] text-[color:var(--aw-text)] text-[14px] leading-[1.6] tracking-[0.01em] mb-[10px] placeholder:text-[color:var(--aw-text-3)]"
       />
       <div className="flex items-center gap-2">
         {/* Finetune (Song only) */}

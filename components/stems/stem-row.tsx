@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { memo, useState, useRef, useEffect } from "react";
 import { Icon } from "@/components/ui/icon";
 import { useWaveSurfer } from "@/hooks/use-wavesurfer";
 
@@ -28,7 +28,7 @@ interface StemRowProps {
   syncTime?: number | null;
 }
 
-export function StemRow({
+function StemRowInner({
   stem,
   playing,
   playhead,
@@ -204,3 +204,5 @@ export function StemRow({
     </div>
   );
 }
+
+export const StemRow = memo(StemRowInner);

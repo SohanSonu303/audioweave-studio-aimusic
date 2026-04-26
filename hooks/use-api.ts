@@ -1,8 +1,11 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
-import { useMemo } from "react";
-import { api, type FetchOptions } from "@/lib/api/client";
+import { useEffect, useMemo, useRef } from "react";
+import { api, ApiError, type FetchOptions } from "@/lib/api/client";
+
+// Clerk JWTs default to 60 s; cache for 50 s to avoid serving an about-to-expire token
+const TOKEN_TTL_MS = 50_000;
 
 /**
  * Client-side API wrapper. Automatically attaches the current Clerk JWT
@@ -14,14 +17,42 @@ import { api, type FetchOptions } from "@/lib/api/client";
  */
 export function useApi() {
   const { getToken } = useAuth();
+  const tokenCacheRef = useRef<{ token: string; expiresAt: number } | null>(null);
+
+  // Invalidate cache on auth-state change (sign-out / user switch)
+  useEffect(() => {
+    tokenCacheRef.current = null;
+  }, [getToken]);
 
   return useMemo(() => {
+    const getCachedToken = async (): Promise<string | null> => {
+      const now = Date.now();
+      if (tokenCacheRef.current && tokenCacheRef.current.expiresAt > now) {
+        return tokenCacheRef.current.token;
+      }
+      const token = await getToken();
+      if (token) {
+        tokenCacheRef.current = { token, expiresAt: now + TOKEN_TTL_MS };
+      }
+      return token;
+    };
+
     const withAuth = async (
       fn: (opts: FetchOptions) => Promise<unknown>,
       options?: FetchOptions,
     ) => {
-      const token = await getToken();
-      return fn({ ...options, token });
+      let token = await getCachedToken();
+      try {
+        return await fn({ ...options, token });
+      } catch (err) {
+        // On 401 clear the cache and retry once — the token may have been revoked server-side
+        if (err instanceof ApiError && err.status === 401) {
+          tokenCacheRef.current = null;
+          token = await getCachedToken();
+          return fn({ ...options, token });
+        }
+        throw err;
+      }
     };
 
     return {
