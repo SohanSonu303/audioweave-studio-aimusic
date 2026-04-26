@@ -49,3 +49,7 @@ next-env.d.ts
 
 # code-review-graph — generated DB with absolute paths, not portable
 .code-review-graph/
+
+edit-sample.html
+editfeature.md
+todo.md

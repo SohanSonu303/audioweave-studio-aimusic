@@ -50,9 +50,7 @@ export function LibraryRow({ item, index }: LibraryRowProps) {
     a.click();
   };
 
-  const tags = item.music_style
-    ? item.music_style.split(",").map((s) => s.trim()).filter(Boolean)
-    : [];
+  const musicStyle = item.music_style ?? "";
 
   const durationStr = item.duration ? formatTime(Math.round(item.duration)) : "—";
 
@@ -74,10 +72,10 @@ export function LibraryRow({ item, index }: LibraryRowProps) {
         }}
       >
         <Icon
-          d={playing ? icons.pause[0] : icons.play}
+          d={playing ? icons.pause : icons.play}
           size={10}
           fill={playing ? "#000" : "rgba(255,255,255,0.7)"}
-          color={playing ? "#000" : "rgba(255,255,255,0.7)"}
+          color="none"
         />
       </button>
 
@@ -94,16 +92,9 @@ export function LibraryRow({ item, index }: LibraryRowProps) {
         </div>
       </div>
 
-      {/* Tags */}
-      <div className="flex gap-1 overflow-hidden flex-nowrap">
-        {tags.slice(0, 2).map((t) => (
-          <span
-            key={t}
-            className="text-[10px] px-2 py-[2px] rounded-[var(--radius-pill)] bg-[rgba(255,255,255,0.06)] text-[color:var(--aw-text-2)] border border-[rgba(255,255,255,0.09)] whitespace-nowrap"
-          >
-            {t}
-          </span>
-        ))}
+      {/* Style */}
+      <div className="text-[11px] text-[color:var(--aw-text-2)] truncate pr-2">
+        {musicStyle || "—"}
       </div>
 
       {/* Waveform */}

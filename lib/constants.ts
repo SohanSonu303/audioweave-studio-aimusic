@@ -6,6 +6,7 @@ export const NAV = [
   { id: "library", label: "Library", href: "/library", icon: icons.library },
   { id: "album", label: "Album", href: "/album", icon: icons.film },
   { id: "stems", label: "Stem Separation", href: "/stems", icon: icons.scissors },
+  { id: "edit", label: "Edit", href: "/edit", icon: icons.wand },
 ] as const;
 
 export const STYLE_TAGS: Record<string, string[]> = {
@@ -76,3 +77,35 @@ export const THUMB_GRADIENTS = [
   "linear-gradient(135deg,#805020,#206040)",
   "linear-gradient(135deg,#602080,#c07030)",
 ] as const;
+
+export const ENERGY_PREFERENCES = [
+  "high_energy", "climax", "drop", "chorus", "verse", "build", "chill", "outro", "intro_heavy"
+] as const;
+
+export const CROSSFADE_BEATS = [
+  { value: 0.5, label: "Half beat" },
+  { value: 1.0, label: "1 beat" },
+  { value: 2.0, label: "2 beats" },
+  { value: 4.0, label: "1 bar" }
+] as const;
+
+export const STRICTNESS_LEVELS = [
+  { value: 0.0, label: "Musical" },
+  { value: 0.5, label: "Balanced" },
+  { value: 1.0, label: "Precise" }
+] as const;
+
+export const SEGMENT_LABELS = [
+  "intro", "verse", "build", "chorus", "peak", "drop", "bridge", "outro"
+] as const;
+
+export const SEGMENT_COLORS: Record<string, string> = {
+  intro: "var(--aw-purple, #a070e0)",
+  verse: "var(--aw-blue, #6090e0)",
+  build: "var(--aw-accent, #e8a055)",
+  chorus: "var(--aw-green, #60c090)",
+  peak: "var(--aw-red, #e06060)",
+  drop: "var(--aw-red, #e06060)",
+  bridge: "var(--aw-accent-dim, rgba(232,160,85,0.18))",
+  outro: "var(--aw-text-3, #505050)",
+};

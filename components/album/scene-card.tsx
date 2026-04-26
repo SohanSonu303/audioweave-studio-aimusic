@@ -14,7 +14,8 @@ interface SceneCardProps {
   onGenerate: () => void;
 }
 
-export function SceneCard({ scene, index, selected, generating, generated, onSelect, onGenerate }: SceneCardProps) {
+// index is required by the parent but not used in render
+export function SceneCard({ scene, selected, generating, generated, onSelect, onGenerate }: SceneCardProps) {
   return (
     <div
       className="rounded-[var(--radius-xl)] border cursor-pointer transition-all duration-200 overflow-hidden"
