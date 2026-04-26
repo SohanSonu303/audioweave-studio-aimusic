@@ -6,12 +6,18 @@ import type { components } from "@/lib/types";
 
 export type ProjectCreate = components["schemas"]["projectCreate"];
 
+/** Backend returns the created project with an id field not in the OpenAPI schema */
+export interface ProjectResponse extends ProjectCreate {
+  id?: string;
+  project_id?: string;
+}
+
 /** List all projects for the current user */
 export function useProjects() {
   const api = useApi();
   return useQuery({
     queryKey: ["projects"],
-    queryFn: () => api.get<ProjectCreate[]>("/projects/"),
+    queryFn: () => api.get<ProjectResponse[]>("/projects/"),
   });
 }
 
@@ -21,7 +27,7 @@ export function useCreateProject() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: ProjectCreate) =>
-      api.post<ProjectCreate>("/projects/", body),
+      api.post<ProjectResponse>("/projects/", body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
   });
 }

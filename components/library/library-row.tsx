@@ -1,11 +1,14 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import { Icon, icons } from "@/components/ui/icon";
 import { Waveform } from "@/components/audio/waveform";
 import { TrackThumbnail } from "@/components/audio/track-thumbnail";
 import { usePlayerStore } from "@/stores/player-store";
 import type { TrackItem } from "@/lib/api/library";
-import { formatTime } from "@/lib/utils";
+import { formatTime, downloadUrl } from "@/lib/utils";
+
+const GRID_STYLE = { gridTemplateColumns: "32px 1fr 1fr 180px 60px 80px 80px" } as const;
 
 const TYPE_COLORS: Record<string, string> = {
   music: "#e8a055",
@@ -26,10 +29,14 @@ interface LibraryRowProps {
   index: number;
 }
 
-export function LibraryRow({ item, index }: LibraryRowProps) {
-  const { currentTrack, isPlaying, toggle } = usePlayerStore();
-  const playing = currentTrack?.id === item.id && isPlaying;
+function LibraryRowInner({ item, index }: LibraryRowProps) {
+  const playing = usePlayerStore((s) => s.currentTrack?.id === item.id && s.isPlaying);
+  const toggle = usePlayerStore((s) => s.toggle);
   const color = TYPE_COLORS[item.type] ?? "#e8a055";
+  const playBtnStyle = useMemo(() => ({
+    background: playing ? color : "rgba(255,255,255,0.07)",
+    border: `1px solid ${playing ? color : "rgba(255,255,255,0.1)"}`,
+  }), [playing, color]);
 
   const handlePlay = () => {
     if (!item.audio_url) return;
@@ -44,22 +51,18 @@ export function LibraryRow({ item, index }: LibraryRowProps) {
 
   const handleDownload = () => {
     if (!item.audio_url) return;
-    const a = document.createElement("a");
-    a.href = item.audio_url;
-    a.download = `${item.title ?? "track"}.mp3`;
-    a.click();
+    const fileName = `${(item.title || item.prompt || "track").slice(0, 30).replace(/[^a-z0-9]/gi, "_")}.mp3`;
+    downloadUrl(item.audio_url, fileName);
   };
 
-  const tags = item.music_style
-    ? item.music_style.split(",").map((s) => s.trim()).filter(Boolean)
-    : [];
+  const musicStyle = item.music_style ?? "";
 
   const durationStr = item.duration ? formatTime(Math.round(item.duration)) : "—";
 
   return (
     <div
       className="grid items-center gap-0 px-5 py-[7px] border-b border-[rgba(255,255,255,0.04)] transition-colors duration-100 cursor-default"
-      style={{ gridTemplateColumns: "32px 1fr 1fr 180px 60px 80px 80px" }}
+      style={GRID_STYLE}
       onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
     >
@@ -68,16 +71,13 @@ export function LibraryRow({ item, index }: LibraryRowProps) {
         onClick={handlePlay}
         disabled={!item.audio_url}
         className="w-[26px] h-[26px] rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 transition-all duration-150 disabled:opacity-40"
-        style={{
-          background: playing ? color : "rgba(255,255,255,0.07)",
-          border: `1px solid ${playing ? color : "rgba(255,255,255,0.1)"}`,
-        }}
+        style={playBtnStyle}
       >
         <Icon
-          d={playing ? icons.pause[0] : icons.play}
+          d={playing ? icons.pause : icons.play}
           size={10}
           fill={playing ? "#000" : "rgba(255,255,255,0.7)"}
-          color={playing ? "#000" : "rgba(255,255,255,0.7)"}
+          color="none"
         />
       </button>
 
@@ -94,16 +94,9 @@ export function LibraryRow({ item, index }: LibraryRowProps) {
         </div>
       </div>
 
-      {/* Tags */}
-      <div className="flex gap-1 overflow-hidden flex-nowrap">
-        {tags.slice(0, 2).map((t) => (
-          <span
-            key={t}
-            className="text-[10px] px-2 py-[2px] rounded-[var(--radius-pill)] bg-[rgba(255,255,255,0.06)] text-[color:var(--aw-text-2)] border border-[rgba(255,255,255,0.09)] whitespace-nowrap"
-          >
-            {t}
-          </span>
-        ))}
+      {/* Style */}
+      <div className="text-[11px] text-[color:var(--aw-text-2)] truncate pr-2">
+        {musicStyle || "—"}
       </div>
 
       {/* Waveform */}
@@ -133,3 +126,5 @@ export function LibraryRow({ item, index }: LibraryRowProps) {
     </div>
   );
 }
+
+export const LibraryRow = memo(LibraryRowInner);

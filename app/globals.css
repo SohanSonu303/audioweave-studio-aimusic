@@ -145,6 +145,20 @@
   0%, 100% { opacity: 0.4; transform: scaleY(1); }
   50% { opacity: 1; transform: scaleY(1.4); }
 }
+@keyframes eq-bar {
+  0%   { transform: scaleY(0.12); opacity: 0.5; }
+  10%  { transform: scaleY(0.88); opacity: 1; }
+  25%  { transform: scaleY(0.35); opacity: 0.7; }
+  40%  { transform: scaleY(0.72); opacity: 0.95; }
+  55%  { transform: scaleY(0.18); opacity: 0.5; }
+  70%  { transform: scaleY(0.95); opacity: 1; }
+  85%  { transform: scaleY(0.45); opacity: 0.75; }
+  100% { transform: scaleY(0.12); opacity: 0.5; }
+}
+@keyframes slide-progress {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -160,6 +174,27 @@
 @keyframes progress-glow {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
+}
+/* shape morph — no rotation, purely organic blob */
+@keyframes orb-morph {
+  0%   { scale: 1;    border-radius: 62% 38% 54% 46% / 52% 58% 42% 48%; }
+  14%  { scale: 1.09; border-radius: 38% 62% 72% 28% / 68% 32% 28% 72%; }
+  28%  { scale: 0.92; border-radius: 74% 26% 36% 64% / 28% 74% 58% 42%; }
+  42%  { scale: 1.07; border-radius: 32% 68% 58% 42% / 70% 30% 74% 26%; }
+  57%  { scale: 0.95; border-radius: 58% 42% 26% 74% / 44% 66% 36% 64%; }
+  71%  { scale: 1.10; border-radius: 44% 56% 78% 22% / 72% 28% 46% 54%; }
+  85%  { scale: 0.93; border-radius: 54% 46% 32% 68% / 38% 68% 62% 32%; }
+  100% { scale: 1;    border-radius: 62% 38% 54% 46% / 52% 58% 42% 48%; }
+}
+/* independent positional drift — desyncs from morph for free-form feel */
+@keyframes orb-drift {
+  0%   { translate: 0px 0px; }
+  18%  { translate: 20px -24px; }
+  37%  { translate: -16px 18px; }
+  55%  { translate: 24px 14px; }
+  73%  { translate: -22px -10px; }
+  88%  { translate: 10px 26px; }
+  100% { translate: 0px 0px; }
 }
 
 .skeleton {

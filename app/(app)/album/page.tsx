@@ -1,126 +1,78 @@
 "use client";
 
-import { useState } from "react";
-import { ScriptInput } from "@/components/album/script-input";
+import Link from "next/link";
+import { useAlbums } from "@/lib/api/album";
+import { AlbumCard } from "@/components/album/album-card";
 import { EmptyState } from "@/components/album/empty-state";
-import { Analyzing } from "@/components/album/analyzing";
-import { SceneTimeline, type SceneSuggestion } from "@/components/album/scene-timeline";
-import { SceneCard } from "@/components/album/scene-card";
-import { ExportFooter } from "@/components/album/export-footer";
-
-const SAMPLE_SCRIPT = `INT. COFFEE SHOP - MORNING
-
-Sarah enters nervously, clutching her guitar case. The café is quiet, just a few early regulars. She finds a corner table.
-
-SARAH
-(whispering to herself)
-You can do this.
-
-She sets up and begins to play. The melody is tentative at first, then grows in confidence.
-
-EXT. CITY STREET - LATER
-
-Sarah walks through the bustling city, headphones in, lost in her music. The world moves around her in a blur of color and noise.
-
-INT. RECORDING STUDIO - NIGHT
-
-Sarah and producer MARCUS sit behind a mixing board. Lights dim, the booth lit only by warm studio lights. Magic is happening.
-
-MARCUS
-That's it. That's the one.
-
-A moment of pure joy. The song they've been working toward for months finally comes together.`;
-
-const SCENES: SceneSuggestion[] = [
-  { section: "Opening Scene", start: 0, end: 3, suggestion: "Soft acoustic guitar, fingerpicked, gentle and intimate — mirrors Sarah's nervousness.", mood: "Nervous / Hopeful", genre: "Acoustic Folk", color: "#6090e0", bpm: "72 BPM" },
-  { section: "Coffee Shop Performance", start: 3, end: 7, suggestion: "Melody builds from sparse to warm — piano joins the guitar, emotional swell.", mood: "Hopeful / Confident", genre: "Indie Folk", color: "#60c090", bpm: "84 BPM" },
-  { section: "City Street Montage", start: 7, end: 11, suggestion: "Upbeat, rhythmic indie pop. Driving beat, layered synths — the city comes alive.", mood: "Energetic / Free", genre: "Indie Pop", color: "#e8a055", bpm: "110 BPM" },
-  { section: "Studio Session", start: 11, end: 16, suggestion: "Warm, low-key R&B groove. Late-night studio vibes. Bass-forward, subtle keys.", mood: "Focused / Creative", genre: "R&B / Soul", color: "#a070e0", bpm: "90 BPM" },
-  { section: "Climax Moment", start: 16, end: 20, suggestion: "Full orchestral swell with the acoustic theme from the opening. Triumphant resolution.", mood: "Triumphant / Joyful", genre: "Cinematic", color: "#e06060", bpm: "96 BPM" },
-];
 
 export default function AlbumPage() {
-  const [script, setScript] = useState(SAMPLE_SCRIPT);
-  const [analysed, setAnalysed] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [selected, setSelected] = useState<number | null>(null);
-  const [generating, setGenerating] = useState<number | null>(null);
-  const [generated, setGenerated] = useState<Record<number, boolean>>({});
-
-  const analyze = () => {
-    if (!script.trim()) return;
-    setAnalyzing(true);
-    setAnalysed(false);
-    setProgress(0);
-    const iv = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) {
-          clearInterval(iv);
-          setAnalyzing(false);
-          setAnalysed(true);
-          return 100;
-        }
-        return p + 3;
-      });
-    }, 50);
-  };
-
-  const generateScene = (idx: number) => {
-    setGenerating(idx);
-    setTimeout(() => {
-      setGenerated((g) => ({ ...g, [idx]: true }));
-      setGenerating(null);
-    }, 2500);
-  };
-
-  const anyGenerated = Object.keys(generated).length > 0;
+  const { data: albums, isLoading, error } = useAlbums();
 
   return (
-    <div className="flex-1 flex overflow-hidden">
-      <ScriptInput
-        script={script}
-        onChange={setScript}
-        analyzing={analyzing}
-        progress={progress}
-        onAnalyze={analyze}
-      />
+    <div className="flex-1 overflow-y-auto">
+      {/* Header */}
+      <div className="px-8 pt-8 pb-2 flex items-end justify-between">
+        <div>
+          <h1
+            className="font-light text-[28px] tracking-[-0.3px] text-[color:var(--aw-text)] mb-[4px]"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Albums
+          </h1>
+          <p className="text-[12px] text-[color:var(--aw-text-2)]">
+            AI-composed multi-track soundtracks from your scripts
+          </p>
+        </div>
 
-      <div className="flex-1 overflow-hidden flex flex-col">
-        {!analysed ? (
-          analyzing ? <Analyzing progress={progress} /> : <EmptyState />
-        ) : (
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="mb-5">
+        <Link
+          href="/album/new"
+          className="flex items-center gap-[6px] px-5 py-[9px] rounded-[9999px] text-[12px] font-semibold text-black tracking-[0.01em] transition-opacity duration-150 hover:opacity-85 flex-shrink-0"
+          style={{
+            background: "var(--aw-accent)",
+            boxShadow: "0 2px 12px rgba(232,160,85,0.25)",
+          }}
+        >
+          ✦ New Album
+        </Link>
+      </div>
+
+      {/* Content */}
+      <div className="px-8 py-6">
+        {isLoading ? (
+          /* Loading skeletons */
+          <div className="grid grid-cols-3 gap-5">
+            {Array.from({ length: 6 }).map((_, i) => (
               <div
-                className="font-light text-[28px] tracking-[-0.3px] mb-1 text-[color:var(--aw-text)]"
-                style={{ fontFamily: "var(--font-display)" }}
+                key={i}
+                className="rounded-[16px] overflow-hidden"
+                style={{ animationDelay: `${i * 60}ms` }}
               >
-                Scene Analysis
+                <div className="skeleton w-full aspect-[16/9]" />
+                <div className="bg-[color:var(--aw-card)] px-4 py-3 border border-t-0 border-[color:var(--aw-border)] rounded-b-[16px]">
+                  <div className="skeleton h-[14px] w-3/5 mb-2" />
+                  <div className="skeleton h-[11px] w-2/5" />
+                </div>
               </div>
-              <p className="text-[12px] text-[color:var(--aw-text-2)]">
-                {SCENES.length} scenes identified · Full emotional arc mapped
-              </p>
+            ))}
+          </div>
+        ) : error ? (
+          /* Error state */
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 py-20 text-center">
+            <div className="text-[14px] text-[color:var(--aw-red)]">
+              Failed to load albums
             </div>
-
-            <SceneTimeline scenes={SCENES} selected={selected} onSelect={setSelected} />
-
-            <div className="flex flex-col gap-[10px]">
-              {SCENES.map((s, i) => (
-                <SceneCard
-                  key={i}
-                  scene={s}
-                  index={i}
-                  selected={selected === i}
-                  generating={generating === i}
-                  generated={!!generated[i]}
-                  onSelect={() => setSelected(selected === i ? null : i)}
-                  onGenerate={() => generateScene(i)}
-                />
-              ))}
+            <div className="text-[12px] text-[color:var(--aw-text-3)]">
+              {error instanceof Error ? error.message : "An unexpected error occurred"}
             </div>
-
-            {anyGenerated && <ExportFooter />}
+          </div>
+        ) : !albums || albums.length === 0 ? (
+          <EmptyState />
+        ) : (
+          /* Album grid */
+          <div className="grid grid-cols-3 gap-5">
+            {albums.map((album, i) => (
+              <AlbumCard key={album.id} album={album} index={i} />
+            ))}
           </div>
         )}
       </div>

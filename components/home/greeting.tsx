@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { getGreeting } from "@/lib/utils";
 
 interface GreetingProps {
@@ -8,11 +7,7 @@ interface GreetingProps {
 }
 
 export function Greeting({ name = "Sohan" }: GreetingProps) {
-  const [greeting, setGreeting] = useState("");
-
-  useEffect(() => {
-    setGreeting(getGreeting());
-  }, []);
+  const greeting = getGreeting();
 
   return (
     <div className="mb-7">

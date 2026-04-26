@@ -50,6 +50,8 @@ export const icons = {
   note: ["M9 18V5l12-2v13", "M6 21a3 3 0 100-6 3 3 0 000 6z", "M18 19a3 3 0 100-6 3 3 0 000 6z"],
   bolt: "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
   image: "M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2zM8.5 13.5l2.5 3 3.5-4.5 4.5 6H5l3.5-4.5z",
+  rotateCcw: ["M3 12a9 9 0 1 0 9-9", "M3 3v9h9"],
+  rotateCw: ["M21 12a9 9 0 1 1-9-9", "M21 3v9h-9"],
   film: [
     "M2 8h20",
     "M2 16h20",
@@ -63,6 +65,7 @@ export const icons = {
     "M18 18v4",
     "M2 4h20v16H2z",
   ],
+  wand: ["M15 4V2", "M15 16v-2", "M8 9h2", "M20 9h2", "M17.8 11.8 19 13", "M15 9h.01", "M17.8 6.2 19 5", "M3 21l9-9", "M12.2 6.2 11 5"],
 } satisfies Record<string, string | string[]>;
 
 export type IconName = keyof typeof icons;
