@@ -89,6 +89,10 @@ function newProjectId(): string {
   return `edit-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+function freeResult(result: OpResult | null) {
+  if (result?.blobUrl) URL.revokeObjectURL(result.blobUrl);
+}
+
 export const useEditStore = create<EditStore>((set) => ({
   selectedOperation: "auto_trim",
 
@@ -112,21 +116,27 @@ export const useEditStore = create<EditStore>((set) => ({
   projectId: newProjectId(),
 
   setSelectedOperation: (op) =>
-    set({
-      selectedOperation: op,
-      primarySource: null,
-      secondarySource: null,
-      sourceDurationSec: null,
-      result: null,
-      analysis: null,
-      preview: null,
-      isProcessing: false,
-      abMode: "original",
-      projectId: newProjectId(),
+    set((state) => {
+      freeResult(state.result);
+      return {
+        selectedOperation: op,
+        primarySource: null,
+        secondarySource: null,
+        sourceDurationSec: null,
+        result: null,
+        analysis: null,
+        preview: null,
+        isProcessing: false,
+        abMode: "original",
+        projectId: newProjectId(),
+      };
     }),
 
   setPrimarySource: (source) =>
-    set({ primarySource: source, result: null, analysis: null, preview: null, abMode: "original" }),
+    set((state) => {
+      freeResult(state.result);
+      return { primarySource: source, result: null, analysis: null, preview: null, abMode: "original" };
+    }),
 
   setSecondarySource: (source) => set({ secondarySource: source }),
 
@@ -136,7 +146,10 @@ export const useEditStore = create<EditStore>((set) => ({
     set({ isProcessing: loading, processingMsg: msg }),
 
   setResult: (result) =>
-    set({ result, abMode: result ? "processed" : "original" }),
+    set((state) => {
+      freeResult(state.result);
+      return { result, abMode: result ? "processed" : "original" };
+    }),
 
   setAbMode: (mode) => set({ abMode: mode }),
 
@@ -145,7 +158,16 @@ export const useEditStore = create<EditStore>((set) => ({
       abMode: state.abMode === "processed" ? "original" : "processed",
     })),
 
-  setAnalysis: (analysis) => set({ analysis }),
+  setAnalysis: (analysis) => set({
+    analysis: analysis
+      ? {
+          ...analysis,
+          candidates: analysis.candidates && analysis.candidates.length > 20
+            ? analysis.candidates.slice(0, 20)
+            : analysis.candidates,
+        }
+      : null,
+  }),
   setPreview: (preview) => set({ preview }),
 
   setMasterPlatforms: (platforms) => set({ masterPlatforms: platforms }),
@@ -153,15 +175,18 @@ export const useEditStore = create<EditStore>((set) => ({
   setMasterOutputFormat: (format) => set({ masterOutputFormat: format }),
 
   resetAll: () =>
-    set({
-      primarySource: null,
-      secondarySource: null,
-      sourceDurationSec: null,
-      result: null,
-      analysis: null,
-      preview: null,
-      isProcessing: false,
-      abMode: "original",
-      projectId: newProjectId(),
+    set((state) => {
+      freeResult(state.result);
+      return {
+        primarySource: null,
+        secondarySource: null,
+        sourceDurationSec: null,
+        result: null,
+        analysis: null,
+        preview: null,
+        isProcessing: false,
+        abMode: "original",
+        projectId: newProjectId(),
+      };
     }),
 }));

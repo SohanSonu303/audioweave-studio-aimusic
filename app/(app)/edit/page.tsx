@@ -19,13 +19,13 @@ export default function EditPage() {
   // Mutual-pause: playing one stops the other
   useEffect(() => {
     if (!sourceWs || !resultWs) return;
-    const pauseResult = () => { if (resultWs.isPlaying()) resultWs.pause(); };
-    const pauseSource = () => { if (sourceWs.isPlaying()) sourceWs.pause(); };
+    const pauseResult = () => { try { if (resultWs.isPlaying()) resultWs.pause(); } catch {} };
+    const pauseSource = () => { try { if (sourceWs.isPlaying()) sourceWs.pause(); } catch {} };
     sourceWs.on("play", pauseResult);
     resultWs.on("play", pauseSource);
     return () => {
-      sourceWs.un("play", pauseResult);
-      resultWs.un("play", pauseSource);
+      try { sourceWs.un("play", pauseResult); } catch {}
+      try { resultWs.un("play", pauseSource); } catch {}
     };
   }, [sourceWs, resultWs]);
 
