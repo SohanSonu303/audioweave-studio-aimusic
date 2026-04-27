@@ -31,8 +31,16 @@ export default function EditPage() {
 
   const handleDownload = () => {
     if (!result) return;
+    // Build a one-shot blob URL from base64 so revoking doesn't invalidate the
+    // long-lived result.blobUrl that the result waveform is still using.
+    const byteString = atob(result.audioB64);
+    const bytes = new Uint8Array(byteString.length);
+    for (let i = 0; i < byteString.length; i++) bytes[i] = byteString.charCodeAt(i);
+    const mime = result.audioFormat === "mp3" ? "audio/mpeg" : "audio/wav";
+    const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+
     const link = document.createElement("a");
-    link.href = result.blobUrl;
+    link.href = url;
     const baseName =
       primarySource?.kind === "file"
         ? primarySource.file.name.replace(/\.[^.]+$/, "")
@@ -41,6 +49,7 @@ export default function EditPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   };
 
   const handleRegionClick = (index: number) => {

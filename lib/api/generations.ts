@@ -19,7 +19,7 @@ export function useGenerateMusic() {
   return useMutation({
     mutationFn: (body: MusicCreate) =>
       api.post<MusicResponse[]>("/music/generateMusic", body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"], refetchType: "none" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"] }),
   });
 }
 
@@ -44,7 +44,7 @@ export function useGenerateSound() {
   return useMutation({
     mutationFn: (body: SoundCreate) =>
       api.post<SoundResponse>("/sound_generator/", body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"], refetchType: "none" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"] }),
   });
 }
 
@@ -55,7 +55,7 @@ export function useRemix() {
   return useMutation({
     mutationFn: (body: RemixCreate) =>
       api.post<MusicResponse>("/music/remix", body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"], refetchType: "none" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"] }),
   });
 }
 

@@ -44,10 +44,11 @@ export function useAlbum(albumId: string | null) {
 }
 
 /**
- * Variant of useAlbum that polls every 4s while the album is in a transient state
- * (PLANNING or GENERATING). Use this on the detail page so the UI auto-transitions
- * when planning/generation finishes. GeneratingView also polls the progress endpoint,
- * but this ensures the album-level status flips even if progress invalidation is missed.
+ * Variant of useAlbum that polls every 10s while the album is in PLANNING.
+ * Once GENERATING, GeneratingView's `useAlbumProgress` poll takes over as the
+ * single source of status (and invalidates this query when status flips out of
+ * GENERATING). Do NOT add GENERATING back to the condition below — it would
+ * double the backend traffic during the longest phase.
  */
 export function useAlbumPlanningPoll(albumId: string | null) {
   const api = useApi();
@@ -57,7 +58,7 @@ export function useAlbumPlanningPoll(albumId: string | null) {
     enabled: !!albumId,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      return status === "PLANNING" || status === "GENERATING" ? 10_000 : false;
+      return status === "PLANNING" ? 10_000 : false;
     },
   });
 }
