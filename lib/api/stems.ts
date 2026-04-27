@@ -41,7 +41,7 @@ export function useSeparationStatus(userId: string | null, taskId: string | null
     refetchInterval: (query) => {
       const status = query.state.data?.status;
       // Backend statuses: PENDING, IN_PROGRESS, COMPLETED, FAILED
-      return status === "PENDING" || status === "IN_PROGRESS" ? 2000 : false;
+      return status === "PENDING" || status === "IN_PROGRESS" ? 10_000 : false;
     },
   });
 }

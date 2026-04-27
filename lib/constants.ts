@@ -1,5 +1,7 @@
 import { icons } from "@/components/ui/icon";
 
+export const TOKENS_PER_ALBUM_TRACK = 300;
+
 export const NAV = [
   { id: "home", label: "Home", href: "/", icon: icons.home },
   { id: "generate", label: "Generate", href: "/generate", icon: icons.bolt },
@@ -20,7 +22,7 @@ export const PLANS = [
     id: "free",
     name: "Free",
     price: 0,
-    credits: "10k",
+    credits: "500",
     projects: 3,
     current: false,
     popular: false,
@@ -30,7 +32,7 @@ export const PLANS = [
     id: "starter",
     name: "Starter",
     price: 5,
-    credits: "30k",
+    credits: "3k",
     projects: 20,
     current: false,
     popular: false,
