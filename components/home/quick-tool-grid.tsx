@@ -8,11 +8,12 @@ const QUICK_TOOLS = [
   { label: "Library", icon: icons.library, color: "#6090e0", href: "/library", desc: "Your saved generations" },
   { label: "Album", icon: icons.film, color: "#a070e0", href: "/album", desc: "Score your script with AI" },
   { label: "Stem Separation", icon: icons.scissors, color: "#60c090", href: "/stems", desc: "Isolate audio layers" },
+  { label: "Marketplace", icon: icons.tag, color: "#f07090", href: "/marketplace", desc: "Buy & sell AI music" },
 ] as const;
 
 export function QuickToolGrid() {
   return (
-    <div className="grid grid-cols-4 gap-3 mb-9">
+    <div className="grid grid-cols-5 gap-3 mb-9">
       {QUICK_TOOLS.map((tool) => (
         <Link
           key={tool.href}

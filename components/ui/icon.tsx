@@ -65,6 +65,9 @@ export const icons = {
     "M2 4h20v16H2z",
   ],
   wand: ["M15 4V2", "M15 16v-2", "M8 9h2", "M20 9h2", "M17.8 11.8 19 13", "M15 9h.01", "M17.8 6.2 19 5", "M3 21l9-9", "M12.2 6.2 11 5"],
+  tag: ["M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z", "M7 7h.01"],
+  arrowUp: ["M12 19V5", "M5 12l7-7 7 7"],
+  send: "M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z",
 } satisfies Record<string, string | string[]>;
 
 export type IconName = keyof typeof icons;

@@ -69,7 +69,7 @@ export function HistoryPanel() {
                     className="w-[22px] h-[22px] rounded-full bg-[color:var(--aw-card-hi)] border border-[color:var(--aw-border)] flex items-center justify-center cursor-pointer flex-shrink-0 disabled:opacity-40"
                   >
                     <Icon
-                      d={playing ? icons.pause[0] : icons.play}
+                      d={playing ? icons.pause : icons.play}
                       size={8}
                       fill={playing ? "none" : "var(--aw-text-2)"}
                       color="var(--aw-text-2)"
@@ -82,12 +82,18 @@ export function HistoryPanel() {
                     <Icon d={icons.heart} size={12} />
                   </button>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       if (!track.audio_url) return;
+                      const res = await fetch(track.audio_url);
+                      const blob = await res.blob();
+                      const url = URL.createObjectURL(blob);
                       const a = document.createElement("a");
-                      a.href = track.audio_url;
+                      a.href = url;
                       a.download = `${track.title ?? "track"}.mp3`;
+                      document.body.appendChild(a);
                       a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
                     }}
                     className="flex-shrink-0 opacity-40"
                   >
