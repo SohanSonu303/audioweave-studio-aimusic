@@ -37,9 +37,10 @@ export default function LibraryPage() {
   const { data, isLoading } = useLibrary();
   const currentTrack = usePlayerStore((s) => s.currentTrack);
 
-  const allTracks: TrackItem[] = (data?.tracks ?? []).filter(
-    (t) => t.status === "COMPLETED",
-  );
+  const allTracks: TrackItem[] = [
+    ...(data?.tracks ?? []),
+    ...(data?.sounds ?? []),
+  ].filter((t) => t.status === "COMPLETED");
 
   const filtered = allTracks.filter((t) => {
     const typeLabel = TYPE_LABEL[t.type] ?? t.type;

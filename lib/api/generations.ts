@@ -48,6 +48,21 @@ export function useGenerateSound() {
   });
 }
 
+/** Poll a single SFX generation by task_id until COMPLETED or FAILED */
+export function useSoundPoll(taskId: string | null) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["sound", taskId],
+    queryFn: () => api.get<SoundResponse>(`/sound_generator/?task_id=${taskId}`),
+    enabled: !!taskId,
+    staleTime: 0,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "COMPLETED" || status === "FAILED" ? false : 10_000;
+    },
+  });
+}
+
 /** Remix an existing track */
 export function useRemix() {
   const api = useApi();

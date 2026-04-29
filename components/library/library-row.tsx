@@ -42,7 +42,7 @@ function LibraryRowInner({ item, index }: LibraryRowProps) {
     if (!item.audio_url) return;
     toggle({
       id: item.id,
-      title: item.title ?? "Untitled",
+      title: item.title ?? item.prompt ?? "Untitled",
       audioUrl: item.audio_url,
       color,
       duration: item.duration ? formatTime(Math.round(item.duration)) : undefined,

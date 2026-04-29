@@ -29,7 +29,7 @@ export function AnnouncementBanner() {
         className="inline-flex items-center gap-[7px] bg-[rgba(232,160,85,0.12)] border border-[rgba(232,160,85,0.25)] rounded-[var(--radius-pill)] px-3 py-[5px] pl-2 cursor-pointer flex-shrink-0"
       >
         <span className="text-[10px] font-bold bg-[color:var(--aw-accent)] text-black rounded-[4px] px-[6px] py-[1px] tracking-[0.04em]">
-          NEW
+          Upcoming
         </span>
         <span className="text-[12px] text-[color:var(--aw-accent)]">Introducing Music Marketplace</span>
         <Icon d={icons.chevronR} size={12} color="var(--aw-accent)" />

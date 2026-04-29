@@ -44,7 +44,7 @@ export function VariationCard({ index, track }: VariationCardProps) {
     <div className="flex-1 bg-[color:var(--aw-card-hi)] rounded-[10px] p-[12px_14px] border border-[color:var(--aw-border)]">
       <div className="flex items-center justify-between mb-2">
         <span className="text-[11px] text-[color:var(--aw-text-2)] font-medium">
-          Variation {index + 1}
+          {track.type === "sfx" ? "Sound FX" : `Variation ${index + 1}`}
         </span>
         <div className="flex gap-[6px]">
           <button
