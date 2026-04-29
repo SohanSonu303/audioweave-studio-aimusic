@@ -11,11 +11,18 @@ import { StylePicker } from "@/components/generate/style-picker";
 import { HistoryPanel } from "@/components/generate/history-panel";
 import { useGenerateMusic, useGenerateSound } from "@/lib/api/generations";
 import { useDownloadPoll } from "@/lib/api/library";
+import { useQuickIdea, useEnhancePrompt } from "@/lib/api/prompt";
 import type { TrackItem } from "@/lib/api/library";
 import type { components } from "@/lib/types";
 
 type GenTab = "Song" | "Music" | "Sound FX";
 type MusicType = components["schemas"]["MusicType"];
+
+const QUICK_IDEA_FALLBACK: Record<GenTab, string> = {
+  Song: "a song",
+  Music: "music",
+  "Sound FX": "a sound effect",
+};
 
 const TAB_MUSIC_TYPE: Record<"Song" | "Music", MusicType> = {
   Song: "vocal",
@@ -37,11 +44,14 @@ export default function GeneratePage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const queryClient = useQueryClient();
   const generateMusic = useGenerateMusic();
   const generateSound = useGenerateSound();
   const { data: pollData } = useDownloadPoll(taskId);
+  const quickIdea = useQuickIdea();
+  const enhancePrompt = useEnhancePrompt();
 
   // isSubmitting bridges the gap between mutateAsync resolving and setTaskId(tid) applying
   const generating = isSubmitting || (!!taskId && completedTracks.length === 0 && !errorMsg);
@@ -61,6 +71,20 @@ export default function GeneratePage() {
     };
   }, [generating, taskId]);
 
+  // 500-second hard timeout — if still generating, stop polling and show error
+  useEffect(() => {
+    if (!taskId || completedTracks.length > 0 || errorMsg) return;
+    pollTimeout.current = setTimeout(() => {
+      if (progressInterval.current) clearInterval(progressInterval.current);
+      setProgress(0);
+      setTaskId(null);
+      setErrorMsg("Generation timed out. Please refresh the page and try again.");
+    }, 500_000);
+    return () => {
+      if (pollTimeout.current) clearTimeout(pollTimeout.current);
+    };
+  }, [taskId, completedTracks.length, errorMsg]);
+
   // Check poll data for completion — backend may return results in tracks or sounds
   useEffect(() => {
     if (!pollData) return;
@@ -70,6 +94,7 @@ export default function GeneratePage() {
       allItems.every((t) => t.status === "COMPLETED" || t.status === "FAILED");
     if (allDone) {
       if (progressInterval.current) clearInterval(progressInterval.current);
+      if (pollTimeout.current) clearTimeout(pollTimeout.current);
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setProgress(100);
       setCompletedTracks(allItems.filter((t) => t.status === "COMPLETED"));
@@ -117,6 +142,7 @@ export default function GeneratePage() {
       setTaskId(tid);
     } catch (err: unknown) {
       if (progressInterval.current) clearInterval(progressInterval.current);
+      if (pollTimeout.current) clearTimeout(pollTimeout.current);
       setProgress(0);
       const status = (err as { status?: number })?.status;
       setErrorMsg(
@@ -127,6 +153,18 @@ export default function GeneratePage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleQuickIdea = async () => {
+    const result = await quickIdea.mutateAsync(prompt.trim() || QUICK_IDEA_FALLBACK[tab]);
+    setPrompt(result.prompt);
+  };
+
+  const handleEnhance = async () => {
+    const text = prompt.trim();
+    if (!text) return;
+    const result = await enhancePrompt.mutateAsync({ prompt: text });
+    setPrompt(result.prompt);
   };
 
   const toggleInclude = (tag: string) =>
@@ -191,6 +229,10 @@ export default function GeneratePage() {
               onPromptChange={setPrompt}
               generating={generating}
               onGenerate={handleGenerate}
+              onQuickIdea={handleQuickIdea}
+              onEnhance={handleEnhance}
+              quickIdeaLoading={quickIdea.isPending}
+              enhanceLoading={enhancePrompt.isPending}
             />
             <StylePicker
               tab={tab}
