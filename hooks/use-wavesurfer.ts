@@ -12,7 +12,21 @@ type UseWaveSurferOptions = {
   barWidth?: number;
   barGap?: number;
   progressColor?: string;
+  // When true, URL sources use placeholder peaks instead of fetching + decoding
+  // the whole file. Playback still works via the <audio> element (streaming).
+  // Use this for large remote files to avoid freezing the main thread.
+  skipDecode?: boolean;
 };
+
+function makePlaceholderPeaks(count = 200): number[] {
+  const peaks: number[] = [];
+  let v = 0.4;
+  for (let i = 0; i < count; i++) {
+    v = Math.max(0.05, Math.min(1, v + (Math.random() - 0.5) * 0.3));
+    peaks.push(v);
+  }
+  return peaks;
+}
 
 export function useWaveSurfer({
   containerRef,
@@ -24,6 +38,7 @@ export function useWaveSurfer({
   barWidth = 2,
   barGap = 1,
   progressColor,
+  skipDecode = false,
 }: UseWaveSurferOptions) {
   const [wavesurfer, setWavesurfer] = useState<WaveSurfer | null>(null);
   const [regionsPlugin, setRegionsPlugin] = useState<RegionsPlugin | null>(null);
@@ -93,11 +108,17 @@ export function useWaveSurfer({
     if (!wavesurfer || !audioSrc) return;
 
     if (typeof audioSrc === "string") {
-      wavesurfer.load(audioSrc);
+      if (skipDecode) {
+        // Pass placeholder peaks so WaveSurfer skips the full file fetch/decode.
+        // The <audio> element still streams the URL for playback.
+        wavesurfer.load(audioSrc, [makePlaceholderPeaks()]);
+      } else {
+        wavesurfer.load(audioSrc);
+      }
     } else {
       wavesurfer.loadBlob(audioSrc);
     }
-  }, [wavesurfer, audioSrc]);
+  }, [wavesurfer, audioSrc, skipDecode]);
 
   const play = useCallback(() => wavesurfer?.play(), [wavesurfer]);
   const pause = useCallback(() => wavesurfer?.pause(), [wavesurfer]);

@@ -45,7 +45,25 @@ function StemRowInner({
   syncTime,
 }: StemRowProps) {
   const [stemRowHovered, setStemRowHovered] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleDownload = async () => {
+    if (!audioUrl || downloading) return;
+    setDownloading(true);
+    try {
+      const res = await fetch(audioUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${stem.label}.wav`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const { wavesurfer, duration, currentTime } = useWaveSurfer({
     containerRef,
@@ -54,6 +72,7 @@ function StemRowInner({
     barWidth: 2,
     barGap: 1,
     progressColor: stem.color,
+    skipDecode: true,
   });
 
   // Report duration and time updates
@@ -165,13 +184,11 @@ function StemRowInner({
           M
         </button>
         {audioUrl ? (
-          <a
-            href={audioUrl}
-            download={`${stem.label}.wav`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={handleDownload}
+            disabled={downloading}
             title="Download"
-            className="w-[26px] h-[26px] rounded-[6px] flex items-center justify-center cursor-pointer hover:bg-[rgba(255,255,255,0.1)] transition-colors"
+            className="w-[26px] h-[26px] rounded-[6px] flex items-center justify-center cursor-pointer hover:bg-[rgba(255,255,255,0.1)] transition-colors disabled:opacity-50 disabled:cursor-wait"
             style={{
               background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.08)",
@@ -182,7 +199,7 @@ function StemRowInner({
               size={11}
               color="var(--aw-text-3)"
             />
-          </a>
+          </button>
         ) : (
           <button
             disabled

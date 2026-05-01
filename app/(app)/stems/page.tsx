@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useUser } from "@clerk/nextjs";
 import { StemsHeader } from "@/components/stems/stems-header";
 import { TrackInfoBar } from "@/components/stems/track-info-bar";
 import { PlaybackBar } from "@/components/stems/playback-bar";
@@ -16,13 +15,13 @@ const STEMS_DEF: StemDef[] = [
   { id: "vocals", label: "Vocals", icon: icons.mic, color: "rgba(255,255,255,0.55)" },
   { id: "drums", label: "Drums", icon: icons.bolt, color: "rgba(255,255,255,0.45)" },
   { id: "bass", label: "Bass", icon: icons.waveform, color: "rgba(232,160,85,0.7)" },
-  { id: "other", label: "Other", icon: icons.sparkle[0], color: "rgba(255,255,255,0.3)" },
+  { id: "piano", label: "Piano", icon: icons.note, color: "rgba(180,140,255,0.7)" },
+  { id: "guitar", label: "Guitar", icon: icons.music, color: "rgba(255,255,255,0.3)" },
 ];
 
 const COLUMN_HEADERS = ["Stem", "Waveform", "Volume", "Controls"];
 
 export default function StemsPage() {
-  const { user } = useUser();
   const queryClient = useQueryClient();
   const [fileName, setFileName] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
@@ -54,12 +53,13 @@ export default function StemsPage() {
   };
 
   const separate = useSeparateStems();
-  const { data: status, error: pollError } = useSeparationStatus(user?.id ?? null, taskId);
+  const { data: status, error: pollError } = useSeparationStatus(taskId);
 
   const isProcessing =
-    separate.isPending || status?.status === "PENDING" || status?.status === "IN_PROGRESS";
+    separate.isPending || status?.status === "QUEUED" || status?.status === "IN_QUEUE";
   const isDone = status?.status === "COMPLETED";
   const isError = separate.isError || status?.status === "FAILED" || !!pollError;
+
 
   // Track processing progress
   const [internalProgress, setInternalProgress] = useState(0);
@@ -115,7 +115,8 @@ export default function StemsPage() {
       vocals: status.vocals_url,
       drums: status.drums_url,
       bass: status.bass_url,
-      other: status.other_url,
+      piano: status.piano_url,
+      guitar: status.guitar_url,
     };
   }, [status]);
 
@@ -165,7 +166,7 @@ export default function StemsPage() {
           <div className="flex-1 flex flex-col items-center justify-center gap-4 text-[color:var(--aw-text-2)] animate-pulse">
             <div className="w-12 h-12 rounded-full border-2 border-t-[var(--aw-accent)] border-[rgba(255,255,255,0.1)] animate-spin" />
             <div className="text-[14px]">
-              {status?.status === "IN_PROGRESS" ? "Separating Stems..." : "Uploading & Processing..."}
+              {status?.status === "IN_QUEUE" ? "Separating Stems..." : "Uploading & Processing..."}
             </div>
             <div className="text-[11px] opacity-60">This may take 1-2 minutes</div>
           </div>
