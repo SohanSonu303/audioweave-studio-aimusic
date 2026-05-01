@@ -7,6 +7,7 @@ export const NAV = [
   { id: "generate", label: "Generate", href: "/generate", icon: icons.bolt },
   { id: "library", label: "Library", href: "/library", icon: icons.library },
   { id: "album", label: "Album", href: "/album", icon: icons.film },
+  { id: "image-to-song", label: "Image to Song", href: "/image-to-song", icon: icons.image },
   { id: "stems", label: "Stem Separation", href: "/stems", icon: icons.scissors },
   { id: "edit", label: "Edit", href: "/edit", icon: icons.wand },
 ] as const;
