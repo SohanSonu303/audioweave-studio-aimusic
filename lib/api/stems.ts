@@ -3,11 +3,26 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@clerk/nextjs";
 import { useApi } from "@/hooks/use-api";
-import type { components } from "@/lib/types";
 
-export type SeparationResponse = components["schemas"]["SeparationResponse"];
+export interface ExtractionResponse {
+  id: string;
+  user_id: string;
+  project_id: string;
+  original_filename: string;
+  stems: string;
+  task_id: string | null;
+  conversion_id: string | null;
+  status: "QUEUED" | "IN_QUEUE" | "COMPLETED" | "FAILED";
+  vocals_url: string | null;
+  drums_url: string | null;
+  bass_url: string | null;
+  piano_url: string | null;
+  guitar_url: string | null;
+  error_message: string | null;
+  created_at: string;
+}
 
-/** Upload audio file and separate into stems */
+/** Upload audio file and kick off stem extraction */
 export function useSeparateStems() {
   const { getToken } = useAuth();
   return useMutation({
@@ -17,7 +32,7 @@ export function useSeparateStems() {
       formData.append("project_id", projectId);
       const token = await getToken();
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/separate/`,
+        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/extraction/`,
         {
           method: "POST",
           headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -25,23 +40,21 @@ export function useSeparateStems() {
         },
       );
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      return res.json() as Promise<SeparationResponse>;
+      return res.json() as Promise<ExtractionResponse>;
     },
   });
 }
 
-/** Poll separation status by user id and task id */
-export function useSeparationStatus(userId: string | null, taskId: string | null) {
+/** Poll extraction status by job id */
+export function useSeparationStatus(jobId: string | null) {
   const api = useApi();
   return useQuery({
-    queryKey: ["separation", userId, taskId],
-    queryFn: () =>
-      api.get<SeparationResponse>(`/separate/${taskId}`),
-    enabled: !!userId && !!taskId,
+    queryKey: ["extraction", jobId],
+    queryFn: () => api.get<ExtractionResponse>(`/extraction/${jobId}`),
+    enabled: !!jobId,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      // Backend statuses: PENDING, IN_PROGRESS, COMPLETED, FAILED
-      return status === "PENDING" || status === "IN_PROGRESS" ? 10_000 : false;
+      return status === "QUEUED" || status === "IN_QUEUE" ? 10_000 : false;
     },
   });
 }

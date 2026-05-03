@@ -10,10 +10,9 @@ export function Sidebar() {
   const pathname = usePathname();
   const { data: me } = useMe();
   const balance = me?.token_balance;
-  const used = balance?.used_tokens ?? 0;
+  const remaining = balance?.balance ?? 0;
   const total = balance?.total_tokens ?? 10000;
-  const remaining = balance?.balance ?? total - used;
-  const pct = total > 0 ? Math.round((remaining / total) * 100) : 0;
+  const pct = total > 0 ? Math.min(100, Math.round((remaining / total) * 100)) : 0;
   const planName = me?.subscription?.plan ?? "Free";
 
   const isActive = (href: string) =>
@@ -43,6 +42,34 @@ export function Sidebar() {
           </div>
           <span className="text-[12px] font-medium text-[color:var(--aw-text)] flex-1">My Studio</span>
           <Icon d={icons.chevronD} size={12} color="var(--aw-text-3)" />
+        </div>
+      </div>
+
+      {/* Token credits */}
+      <div className="px-[10px] py-2 border-b border-[color:var(--aw-border)]">
+        <div className="px-2 pt-[6px] pb-[10px]">
+          <div className="flex items-baseline justify-between mb-[5px]">
+            <span className="text-[11px] font-semibold text-[color:var(--aw-text)] tracking-[-0.01em] tabular-nums">
+              {remaining.toLocaleString()}{" "}
+              <span className="text-[color:var(--aw-text-3)] font-normal">/ {total.toLocaleString()}</span>
+            </span>
+            <span
+              className="text-[9px] font-bold uppercase tracking-[0.06em] px-[5px] py-[1px] rounded-[3px]"
+              style={{ background: "rgba(232,160,85,0.15)", color: "var(--aw-accent)" }}
+            >
+              {planName}
+            </span>
+          </div>
+          <div className="text-[10px] text-[color:var(--aw-text-3)] mb-[6px]">credits left</div>
+          <div className="h-[3px] bg-[rgba(255,255,255,0.07)] rounded-[2px]">
+            <div
+              className="h-full rounded-[2px] transition-all duration-500"
+              style={{
+                width: `${pct}%`,
+                background: "linear-gradient(90deg, var(--aw-accent), rgba(232,160,85,0.5))",
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -83,23 +110,6 @@ export function Sidebar() {
 
       {/* Bottom section */}
       <div className="p-[10px] border-t border-[color:var(--aw-border)]">
-        {/* Credits block */}
-        <div className="bg-[rgba(255,255,255,0.03)] border border-[color:var(--aw-border)] rounded-[10px] px-3 py-[10px] mb-2">
-          <div className="flex justify-between items-baseline mb-[5px]">
-            <span className="text-[11px] font-semibold text-[color:var(--aw-text)] tracking-[-0.01em]">
-              {remaining.toLocaleString()} <span className="text-[color:var(--aw-text-3)] font-normal">/ {total.toLocaleString()}</span>
-            </span>
-            <span className="text-[10px] text-[color:var(--aw-accent)] font-medium capitalize">{planName}</span>
-          </div>
-          <div className="text-[10px] text-[color:var(--aw-text-3)] mb-1.5">credits left</div>
-          <div className="h-[3px] bg-[rgba(255,255,255,0.07)] rounded-[2px]">
-            <div
-              className="h-full rounded-[2px]"
-              style={{ width: `${pct}%`, background: "linear-gradient(90deg, var(--aw-accent), rgba(232,160,85,0.5))" }}
-            />
-          </div>
-        </div>
-
         {/* Upgrade button */}
         <Link
           href="/subscription"
