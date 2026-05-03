@@ -30,6 +30,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <ClerkProvider
       appearance={{
+        layout: { unsafe_disableDevelopmentModeWarnings: true },
         variables: {
           colorPrimary: "#e8a055",
           colorBackground: "#0a0a0a",
