@@ -135,7 +135,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
 
         {/* Copyright */}
         <div className="relative z-10 px-10 pb-8">
-          <p style={{ fontSize: 11, color: "#505050" }}>© 2025 AudioWeave Studio</p>
+          <p style={{ fontSize: 11, color: "#505050" }}>© 2026 AudioWeave Studio</p>
         </div>
 
         {/* Decorative waveform */}
