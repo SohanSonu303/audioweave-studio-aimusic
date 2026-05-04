@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { NAV } from "@/lib/constants";
 import { Icon, icons } from "@/components/ui/icon";
 import { useMe } from "@/lib/api/auth";
+import { TermsModal } from "./terms-modal";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -124,6 +125,26 @@ export function Sidebar() {
 
       {/* Bottom section */}
       <div className="p-[10px] border-t border-[color:var(--aw-border)]">
+        {/* Terms & copyright */}
+        <div className="flex items-center justify-center gap-[6px] mb-[8px] px-1">
+          <TermsModal
+            trigger={
+              <button
+                className="text-[10px] transition-colors bg-transparent border-none cursor-pointer leading-none"
+                style={{ color: "var(--aw-text)" }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.75"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+              >
+                Terms of Service
+              </button>
+            }
+          />
+          <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.2)" }}>·</span>
+          <span className="text-[10px]" style={{ color: "var(--aw-text)" }}>
+            © 2026
+          </span>
+        </div>
+
         {/* Upgrade button */}
         <Link
           href="/subscription"

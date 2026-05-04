@@ -39,8 +39,8 @@ export function AuthShell({ children }: { children: ReactNode }) {
 
         {/* Wordmark */}
         <div className="relative z-10 p-10">
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="flex items-end gap-[2px]" style={{ height: 20 }}>
+          <div className="flex items-start gap-2.5">
+            <div className="flex items-end gap-[2px]" style={{ height: 20, marginTop: 4 }}>
               {LOGO_BARS.map((h, i) => (
                 <div
                   key={i}
@@ -54,29 +54,32 @@ export function AuthShell({ children }: { children: ReactNode }) {
                 />
               ))}
             </div>
-            <span
-              style={{
-                fontFamily: "'Cormorant Garamond', Georgia, serif",
-                fontSize: 22,
-                fontWeight: 300,
-                color: "#eeeeee",
-                letterSpacing: "-0.3px",
-              }}
-            >
-              AudioWeave
-            </span>
+            <div className="flex flex-col">
+              <span
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontSize: 22,
+                  fontWeight: 300,
+                  color: "#eeeeee",
+                  letterSpacing: "-0.3px",
+                  lineHeight: 1,
+                }}
+              >
+                AudioWeave
+              </span>
+              <p
+                style={{
+                  fontSize: 10,
+                  color: "#505050",
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  marginTop: 3,
+                }}
+              >
+                Studio
+              </p>
+            </div>
           </div>
-          <p
-            style={{
-              fontSize: 10,
-              color: "#505050",
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              marginLeft: 41,
-            }}
-          >
-            Studio
-          </p>
         </div>
 
         {/* Tagline + features */}
