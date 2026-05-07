@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@clerk/nextjs";
 import { useApi } from "@/hooks/use-api";
 
 export interface AuthUser {
@@ -31,9 +32,11 @@ export interface AuthMeResponse {
 /** Fetch current user profile, subscription, and token balance */
 export function useMe() {
   const api = useApi();
+  const { isLoaded, isSignedIn } = useAuth();
   return useQuery({
     queryKey: ["me"],
     queryFn: () => api.get<AuthMeResponse>("/auth/me"),
     staleTime: 30_000,
+    enabled: isLoaded && !!isSignedIn,
   });
 }

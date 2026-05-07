@@ -109,17 +109,28 @@ export function useWaveSurfer({
   useEffect(() => {
     if (!wavesurfer || !audioSrc) return;
 
-    if (typeof audioSrc === "string") {
-      if (skipDecode) {
-        // Pass placeholder peaks so WaveSurfer skips the full file fetch/decode.
-        // The <audio> element still streams the URL for playback.
-        wavesurfer.load(audioSrc, [makePlaceholderPeaks()]);
-      } else {
-        wavesurfer.load(audioSrc);
+    const doLoad = async () => {
+      try {
+        if (typeof audioSrc === "string") {
+          if (skipDecode) {
+            // Pass placeholder peaks so WaveSurfer skips the full file fetch/decode.
+            // The <audio> element still streams the URL for playback.
+            await wavesurfer.load(audioSrc, [makePlaceholderPeaks()]);
+          } else {
+            await wavesurfer.load(audioSrc);
+          }
+        } else {
+          await wavesurfer.loadBlob(audioSrc);
+        }
+      } catch (err) {
+        // AbortError is expected: WaveSurfer cancels in-flight loads when a new
+        // source is set or the instance is destroyed. Swallow it silently.
+        if ((err as Error)?.name === "AbortError") return;
+        throw err;
       }
-    } else {
-      wavesurfer.loadBlob(audioSrc);
-    }
+    };
+
+    doLoad();
   }, [wavesurfer, audioSrc, skipDecode]);
 
   const play = useCallback(() => wavesurfer?.play(), [wavesurfer]);

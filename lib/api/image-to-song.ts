@@ -56,6 +56,7 @@ export function useImageToSong() {
   return useMutation({
     mutationFn: async (data: ImageToSongFormData): Promise<MusicResponse[]> => {
       const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
 
       const form = new FormData();
       form.append("project_id", data.projectId);
@@ -77,7 +78,7 @@ export function useImageToSong() {
 
       const res = await fetch(`${API_BASE}/image-to-song/generate`, {
         method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: { Authorization: `Bearer ${token}` },
         body: form,
       });
 
@@ -101,17 +102,18 @@ export function useImageToSong() {
 
 export function useImageToSongPoll(taskId: string | null) {
   const api = useApi();
+  const { isLoaded, isSignedIn } = useAuth();
 
   return useQuery({
     queryKey: ["image-to-song-poll", taskId],
     queryFn: () => api.get<DownloadPollResponse>(`/download/?task_id=${taskId}`),
-    enabled: !!taskId,
+    enabled: isLoaded && !!isSignedIn && !!taskId,
     refetchInterval: (query) => {
       const tracks = query.state.data?.tracks ?? [];
       const allDone =
         tracks.length > 0 &&
         tracks.every((t) => t.status === "COMPLETED" || t.status === "FAILED");
-      return allDone ? false : 3000;
+      return allDone ? false : 10_000;
     },
     staleTime: 0,
   });
