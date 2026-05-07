@@ -135,6 +135,7 @@ export default function GeneratePage() {
     if (!done) return;
     if (progressInterval.current) clearInterval(progressInterval.current);
     if (pollTimeout.current) clearTimeout(pollTimeout.current);
+    // eslint-disable-next-line
     setProgress(100);
     if (sfxPollData.status === "COMPLETED") {
       setCompletedTracks([adaptSoundResponse(sfxPollData)]);

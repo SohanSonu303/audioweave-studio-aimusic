@@ -5,10 +5,11 @@ import { usePathname } from "next/navigation";
 import { NAV } from "@/lib/constants";
 import { Icon, icons } from "@/components/ui/icon";
 import { useMe } from "@/lib/api/auth";
+import { TermsModal } from "./terms-modal";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { data: me } = useMe();
+  const { data: me, isLoading: meLoading } = useMe();
   const balance = me?.token_balance;
   const remaining = balance?.balance ?? 0;
   const total = balance?.total_tokens ?? 10000;
@@ -48,28 +49,42 @@ export function Sidebar() {
       {/* Token credits */}
       <div className="px-[10px] py-2 border-b border-[color:var(--aw-border)]">
         <div className="px-2 pt-[6px] pb-[10px]">
-          <div className="flex items-baseline justify-between mb-[5px]">
-            <span className="text-[11px] font-semibold text-[color:var(--aw-text)] tracking-[-0.01em] tabular-nums">
-              {remaining.toLocaleString()}{" "}
-              <span className="text-[color:var(--aw-text-3)] font-normal">/ {total.toLocaleString()}</span>
-            </span>
-            <span
-              className="text-[9px] font-bold uppercase tracking-[0.06em] px-[5px] py-[1px] rounded-[3px]"
-              style={{ background: "rgba(232,160,85,0.15)", color: "var(--aw-accent)" }}
-            >
-              {planName}
-            </span>
-          </div>
-          <div className="text-[10px] text-[color:var(--aw-text-3)] mb-[6px]">credits left</div>
-          <div className="h-[3px] bg-[rgba(255,255,255,0.07)] rounded-[2px]">
-            <div
-              className="h-full rounded-[2px] transition-all duration-500"
-              style={{
-                width: `${pct}%`,
-                background: "linear-gradient(90deg, var(--aw-accent), rgba(232,160,85,0.5))",
-              }}
-            />
-          </div>
+          {meLoading ? (
+            /* Skeleton while /auth/me is in flight */
+            <div className="flex flex-col gap-[6px]">
+              <div className="flex items-center justify-between">
+                <div className="h-[10px] w-20 rounded-[4px] animate-pulse" style={{ background: "rgba(255,255,255,0.08)" }} />
+                <div className="h-[14px] w-10 rounded-[3px] animate-pulse" style={{ background: "rgba(232,160,85,0.1)" }} />
+              </div>
+              <div className="h-[10px] w-14 rounded-[4px] animate-pulse" style={{ background: "rgba(255,255,255,0.05)" }} />
+              <div className="h-[3px] w-full rounded-[2px] animate-pulse" style={{ background: "rgba(255,255,255,0.07)" }} />
+            </div>
+          ) : (
+            <>
+              <div className="flex items-baseline justify-between mb-[5px]">
+                <span className="text-[11px] font-semibold text-[color:var(--aw-text)] tracking-[-0.01em] tabular-nums">
+                  {remaining.toLocaleString()}{" "}
+                  <span className="text-[color:var(--aw-text-3)] font-normal">/ {total.toLocaleString()}</span>
+                </span>
+                <span
+                  className="text-[9px] font-bold uppercase tracking-[0.06em] px-[5px] py-[1px] rounded-[3px]"
+                  style={{ background: "rgba(232,160,85,0.15)", color: "var(--aw-accent)" }}
+                >
+                  {planName}
+                </span>
+              </div>
+              <div className="text-[10px] text-[color:var(--aw-text-3)] mb-[6px]">credits left</div>
+              <div className="h-[3px] bg-[rgba(255,255,255,0.07)] rounded-[2px]">
+                <div
+                  className="h-full rounded-[2px] transition-all duration-500"
+                  style={{
+                    width: `${pct}%`,
+                    background: "linear-gradient(90deg, var(--aw-accent), rgba(232,160,85,0.5))",
+                  }}
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -110,6 +125,26 @@ export function Sidebar() {
 
       {/* Bottom section */}
       <div className="p-[10px] border-t border-[color:var(--aw-border)]">
+        {/* Terms & copyright */}
+        <div className="flex items-center justify-center gap-[6px] mb-[8px] px-1">
+          <TermsModal
+            trigger={
+              <button
+                className="text-[10px] transition-colors bg-transparent border-none cursor-pointer leading-none"
+                style={{ color: "var(--aw-text)" }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.75"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+              >
+                Terms of Service
+              </button>
+            }
+          />
+          <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.2)" }}>·</span>
+          <span className="text-[10px]" style={{ color: "var(--aw-text)" }}>
+            © 2026
+          </span>
+        </div>
+
         {/* Upgrade button */}
         <Link
           href="/subscription"

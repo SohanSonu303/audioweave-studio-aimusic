@@ -7,14 +7,15 @@ export const NAV = [
   { id: "generate", label: "Generate", href: "/generate", icon: icons.bolt },
   { id: "library", label: "Library", href: "/library", icon: icons.library },
   { id: "album", label: "Album", href: "/album", icon: icons.film },
+  { id: "image-to-song", label: "Image to Song", href: "/image-to-song", icon: icons.image },
   { id: "stems", label: "Stem Separation", href: "/stems", icon: icons.scissors },
   { id: "edit", label: "Edit", href: "/edit", icon: icons.wand },
 ] as const;
 
 export const STYLE_TAGS: Record<string, string[]> = {
-  Song: ["Pop", "R&B", "Hip-Hop", "Ballad", "Country", "Folk", "Indie", "Soul", "Jazz", "Blues", "Rock", "Punk", "Metal", "Gospel", "Latin", "K-Pop"],
-  Music: ["Cinematic", "Orchestral", "Ambient", "Lo-Fi", "Electronic", "House", "Techno", "Drum & Bass", "Synthwave", "Classical", "Jazz", "Trap", "Future Bass", "Chillout"],
-  "Sound FX": ["Nature", "Urban", "Sci-Fi", "Horror", "Comedy", "Foley", "Transitions", "UI Sounds", "Impact", "Ambience", "Mechanical", "Organic"],
+  Song: ["Pop", "R&B", "Hip-Hop", "Ballad", "Country", "Folk", "Indie", "Soul", "Jazz", "Blues", "Rock", "Punk", "Metal", "Gospel", "Latin", "K-Pop", "Alternative", "Grunge", "Emo", "Reggae", "Afrobeats", "Disco", "Funk", "New Wave", "Shoegaze", "Dream Pop", "Classic Rock", "Acoustic"],
+  Music: ["Cinematic", "Orchestral", "Ambient", "Lo-Fi", "Electronic", "House", "Techno", "Drum & Bass", "Synthwave", "Classical", "Jazz", "Trap", "Future Bass", "Chillout", "Trance", "Dubstep", "Deep House", "Vaporwave", "Afro House", "Nu-Disco", "Experimental", "Film Score", "Video Game", "Minimal", "Melodic Techno", "Breakbeat"],
+  "Sound FX": ["Nature", "Urban", "Sci-Fi", "Horror", "Comedy", "Foley", "Transitions", "UI Sounds", "Impact", "Ambience", "Mechanical", "Organic", "Retro", "Magic", "Weather", "Water", "Fire", "Crowd", "Industrial", "Glitch", "Space", "Whoosh", "Riser", "Stinger"],
 };
 
 export const PLANS = [

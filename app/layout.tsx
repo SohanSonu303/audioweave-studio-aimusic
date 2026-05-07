@@ -24,6 +24,9 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "AudioWeave Studio",
   description: "AI music generation studio",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

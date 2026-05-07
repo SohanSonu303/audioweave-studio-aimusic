@@ -1,12 +1,11 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import { getGreeting } from "@/lib/utils";
 
-interface GreetingProps {
-  name?: string;
-}
-
-export function Greeting({ name = "Sohan" }: GreetingProps) {
+export function Greeting() {
+  const { user } = useUser();
+  const name = user?.firstName ?? user?.username ?? "there";
   const greeting = getGreeting();
 
   return (
