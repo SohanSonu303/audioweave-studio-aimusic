@@ -3,7 +3,7 @@ import { icons } from "@/components/ui/icon";
 export const TOKENS_PER_ALBUM_TRACK = 300;
 
 export const NAV = [
-  { id: "home", label: "Home", href: "/", icon: icons.home },
+  { id: "home", label: "Home", href: "/home", icon: icons.home },
   { id: "generate", label: "Generate", href: "/generate", icon: icons.bolt },
   { id: "library", label: "Library", href: "/library", icon: icons.library },
   { id: "album", label: "Album", href: "/album", icon: icons.film },
