@@ -11,6 +11,10 @@ interface PromptBarProps {
   onPromptChange: (v: string) => void;
   generating: boolean;
   onGenerate: () => void;
+  onQuickIdea: () => void;
+  onEnhance: () => void;
+  quickIdeaLoading: boolean;
+  enhanceLoading: boolean;
 }
 
 const PLACEHOLDERS: Record<GenTab, string> = {
@@ -25,8 +29,14 @@ export function PromptBar({
   onPromptChange,
   generating,
   onGenerate,
+  onQuickIdea,
+  onEnhance,
+  quickIdeaLoading,
+  enhanceLoading,
 }: PromptBarProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const pillDisabled = generating || quickIdeaLoading || enhanceLoading;
 
   return (
     <div
@@ -51,6 +61,53 @@ export function PromptBar({
             <Icon d={icons.mic} size={12} /> No Finetune
           </button>
         )}
+
+        {/* Enhance + Quick Idea pills */}
+        <button
+          onClick={onEnhance}
+          disabled={pillDisabled}
+          className="flex items-center gap-[5px] px-3 py-[5px] rounded-[20px] text-[12px] border transition-colors duration-150"
+          style={{
+            background: enhanceLoading ? "rgba(232,160,85,0.12)" : "rgba(255,255,255,0.04)",
+            borderColor: enhanceLoading ? "var(--aw-accent)" : "var(--aw-border)",
+            color: enhanceLoading ? "var(--aw-accent)" : "var(--aw-text-2)",
+            cursor: pillDisabled ? "not-allowed" : "pointer",
+            opacity: pillDisabled && !enhanceLoading ? 0.5 : 1,
+          }}
+        >
+          {enhanceLoading ? (
+            <div
+              className="w-[10px] h-[10px] rounded-full border-2 border-current border-t-transparent"
+              style={{ animation: "spin 0.8s linear infinite" }}
+            />
+          ) : (
+            <Icon d={icons.sparkle[0]} size={11} fill="currentColor" stroke="none" />
+          )}
+          Enhance
+        </button>
+
+        <button
+          onClick={onQuickIdea}
+          disabled={pillDisabled}
+          className="flex items-center gap-[5px] px-3 py-[5px] rounded-[20px] text-[12px] border transition-colors duration-150"
+          style={{
+            background: quickIdeaLoading ? "rgba(232,160,85,0.12)" : "rgba(255,255,255,0.04)",
+            borderColor: quickIdeaLoading ? "var(--aw-accent)" : "var(--aw-border)",
+            color: quickIdeaLoading ? "var(--aw-accent)" : "var(--aw-text-2)",
+            cursor: pillDisabled ? "not-allowed" : "pointer",
+            opacity: pillDisabled && !quickIdeaLoading ? 0.5 : 1,
+          }}
+        >
+          {quickIdeaLoading ? (
+            <div
+              className="w-[10px] h-[10px] rounded-full border-2 border-current border-t-transparent"
+              style={{ animation: "spin 0.8s linear infinite" }}
+            />
+          ) : (
+            <Icon d={icons.sparkle[0]} size={11} fill="currentColor" stroke="none" />
+          )}
+          Quick Idea
+        </button>
 
         {/* Generate button */}
         <div className="ml-auto flex items-center gap-2">

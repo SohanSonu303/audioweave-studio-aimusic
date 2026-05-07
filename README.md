@@ -67,7 +67,7 @@ npm run gen:types  # Regenerate lib/types.ts from FastAPI OpenAPI schema
 | `/library` | Paginated track library with waveform previews |
 | `/stems` | Stem separation — upload audio, poll for 4 isolated stems (vocals, drums, bass, other) |
 | `/edit` | Audio editing workspace — cut, fade, loop, split, mix, overlay, EQ, AI warmth, style enhance, AI auto-trim, mastering, reference match, podcast production |
-| `/album` | Album Composer — scene-based arrangement |
+| `/album` | Album Composer — script-driven multi-track album generation with planning → review → generating → results flow |
 | `/subscription` | Plan management and credits |
 
 ### Edit Page (`/edit`)
@@ -86,6 +86,31 @@ Three-panel layout with a bottom playback deck:
 **Reference Match:** EQ + dynamics match a target track to a reference audio fingerprint; also generates a music-gen prompt from any reference track ("Vibe Prompt").
 
 **Podcast Production:** combines speech + background music with noise reduction, voice EQ, and configurable ducking.
+
+### Album Composer (`/album`)
+
+Generate a full album from a script or concept. The flow:
+
+1. **Create** — submit a script/prompt, backend kicks off planning.
+2. **Planning** — backend analyses the script and proposes a track list (`PLANNING`). UI polls every 10 s.
+3. **Review** — once `PLANNED`, user reviews / edits / replans individual tracks before approval.
+4. **Generating** — on approval (`GENERATING`), backend produces each track. Progress endpoint reports per-track status; UI shows a live progress bar and per-track state.
+5. **Results** — on `COMPLETED`, results view renders the playable album. Failed albums fall through to a `FailedView`.
+
+### Stem Separation (`/stems`)
+
+Upload audio → backend splits into 4 stems (vocals, drums, bass, other). Polled every 10 s while `PENDING`/`IN_PROGRESS`; cost is 300 tokens per job.
+
+## Performance & memory
+
+The app is hardened for long-lived editing sessions and concurrent users. Key invariants (see [performace_impro.md](performace_impro.md) and [CLAUDE.md](CLAUDE.md) for details):
+
+- Edit-page blob URLs and base64 payloads are revoked / freed on every operation, source, or result transition — no per-tab memory growth across consecutive edits.
+- Clerk JWT cached in memory for 50 s with single-shot 401 retry — a 4-step auto-edit flow makes ≤1 token fetch.
+- All long-running queries poll on a uniform 10 s cadence and pause completely on hidden tabs (`refetchIntervalInBackground: false`).
+- Album status polling is split across phases: `useAlbumPlanningPoll` covers `PLANNING`, `useAlbumProgress` covers `GENERATING` — never both at once.
+- Library list rows and stem rows are `React.memo`-wrapped; WaveSurfer instances are explicitly destroyed on cleanup.
+- `next.config.ts` enables `optimizePackageImports` for `lucide-react` and `@base-ui/react`, plus `reactStrictMode: true`.
 
 ## Project Structure
 

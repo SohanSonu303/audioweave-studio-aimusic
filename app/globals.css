@@ -241,3 +241,13 @@
     cursor: pointer;
   }
 }
+
+/* ── Clerk badge override ("Last Used") ── */
+[class*="cl-badge"],
+[class*="cl-badge"] *,
+[data-localization-key*="lastAuthenticationStrategy"],
+[data-localization-key*="badge"] {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}

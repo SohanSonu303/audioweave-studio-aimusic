@@ -64,7 +64,10 @@ components/
   home/               # announcement-banner, greeting, quick-tool-grid, recent-list, quick-start, credits-summary
   generate/           # generate-header, lyrics-card, prompt-bar, style-picker, generating-card, variation-card, history-panel
   library/            # library-header, library-table, library-row
-  album/              # script-input, empty-state, analyzing, scene-timeline, scene-card, export-footer
+  album/              # album-card, album-detail, album-header, album-waveform-player,
+                      # create-form, empty-state, failed-view, generate-bar, generating-view,
+                      # planning-view, results-view, review-view, token-confirm-dialog,
+                      # track-edit-card, track-result-card
   stems/              # stems-header, track-info-bar, playback-bar, stem-row
   edit/               # tool-console, inspector-panel, playback-deck, track-header,
                       # source-waveform, result-waveform, waveform-timeline,
@@ -134,6 +137,32 @@ Four-step AI trim flow against `/auto-edit/*`:
 ### Podcast Production (`lib/api/podcast.ts`)
 - `usePodcastProduce` — combines speech + optional music with noise reduction, voice EQ, and configurable music ducking.
 
+### Album Composer (`/album`, `lib/api/album.ts`)
+Script-driven multi-track album generation. Status flow: `PLANNING` → `PLANNED` → `GENERATING` → `COMPLETED` | `FAILED`. Status-driven view in [components/album/album-detail.tsx](components/album/album-detail.tsx) renders one of `PlanningView`, `ReviewView`, `GeneratingView`, `ResultsView`, or `FailedView`.
+
+**Polling rules — do not change without re-reading [performace_impro.md](performace_impro.md) §2.1:**
+- `useAlbumPlanningPoll` polls `/album/{id}` every 10 s **only while `PLANNING`**.
+- `useAlbumProgress` polls `/album/{id}/progress` every 10 s **only while `GENERATING`** and is the single source of status during generation; it invalidates `["album", id]` when status flips out of `GENERATING`, which causes `album-detail` to re-render with the new view.
+- Adding `GENERATING` back to the planning poll, or mounting both polls in parallel, doubles backend traffic during the longest album phase.
+
+### Stem Separation (`/stems`, `lib/api/stems.ts`)
+- `useSeparateStems` — uploads audio + project_id, kicks off a background job.
+- `useSeparationStatus` — polls `/separate/{taskId}` every 10 s while `PENDING` or `IN_PROGRESS`; returns 4 stem URLs on `COMPLETED`.
+
+## Performance & memory invariants (don't regress)
+
+These were established in [performace_impro.md](performace_impro.md). Future work must preserve them:
+
+- **Edit-store frees blob URLs on every result transition.** `freeResult(state.result)` is called inside `setSelectedOperation`, `setPrimarySource`, `setResult`, and `resetAll` in [stores/edit-store.ts](stores/edit-store.ts). Don't bypass these setters.
+- **Edit page download builds a one-shot blob URL.** [app/(app)/edit/page.tsx](app/(app)/edit/page.tsx) `handleDownload` decodes `audioB64` into a fresh URL and revokes it; do **not** reuse `result.blobUrl` for the download — the result waveform is still using it.
+- **Clerk JWT is cached for 50 s with 401-retry.** [hooks/use-api.ts](hooks/use-api.ts) holds the token in a ref. New API hooks should go through `useApi`, not call `getToken()` directly (the one exception is `useSeparateStems` which uses `fetch` for multipart upload).
+- **All polling intervals are 10 s.** Five hooks: `useGeneration`, `useAlbumPlanningPoll`, `useAlbumProgress`, `useSeparationStatus`, `useDownloadPoll`. Do not introduce shorter intervals without a coordination story.
+- **QueryClient defaults** in [app/providers.tsx](app/providers.tsx): `staleTime: 30s`, `gcTime: 60s`, `refetchOnWindowFocus: false`, `refetchIntervalInBackground: false`. Background tabs do not poll.
+- **Library invalidation** in [lib/api/generations.ts](lib/api/generations.ts) uses default `refetchType: "active"` — only refetches when `/library` is mounted. Don't add `refetchType: "none"` (silently stale UI) or switch to `setQueryData` without matching the `LibraryResponse` shape exactly.
+- **List rows are memoized.** `LibraryRow` and `StemRow` are wrapped in `React.memo`; inline `style` objects are lifted to `useMemo`. Don't pass new object/function references through props on every render.
+- **WaveSurfer instances are explicitly destroyed.** [hooks/use-edit-ab-player.ts](hooks/use-edit-ab-player.ts) calls `.destroy()` before clearing refs; A/B mutual-pause handlers are wrapped in `try/catch` to handle the destroyed-between-events race.
+- **`reactStrictMode: true`** is on. Effects double-mount in dev — any new effect must have a clean teardown.
+
 ## Locked decisions (don't re-litigate)
 
 Full rationale in [plan.md](plan.md) § Resolved decisions. Summary so future sessions don't re-ask:
@@ -150,6 +179,8 @@ Full rationale in [plan.md](plan.md) § Resolved decisions. Summary so future se
 - **Marketplace** and **Album Composer** are real product names / real routes.
 - **Edit API responses** can be either JSON (`{audio_b64, audio_format}`) or raw binary audio. `parseEditResponse` in `lib/api/edit-ops.ts` handles both transparently.
 - **Edit operations reset state on op change** — switching the selected operation clears sources, result, analysis, and generates a fresh `projectId`. This is intentional; do not persist cross-op state in `edit-store`.
+- **Auto-trim `candidates[]` capped at 20** in `setAnalysis`. The UI only renders a handful; long files were producing tens of MB of unused candidate data.
+- **Album status is the routing key.** `album-detail` switches views purely on `album.status`. New states must be added to the switch in [components/album/album-detail.tsx](components/album/album-detail.tsx) and to the polling condition in [lib/api/album.ts](lib/api/album.ts).
 
 ## Commands
 

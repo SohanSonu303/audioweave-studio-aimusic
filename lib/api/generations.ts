@@ -19,7 +19,7 @@ export function useGenerateMusic() {
   return useMutation({
     mutationFn: (body: MusicCreate) =>
       api.post<MusicResponse[]>("/music/generateMusic", body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"], refetchType: "none" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"] }),
   });
 }
 
@@ -44,7 +44,22 @@ export function useGenerateSound() {
   return useMutation({
     mutationFn: (body: SoundCreate) =>
       api.post<SoundResponse>("/sound_generator/", body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"], refetchType: "none" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"] }),
+  });
+}
+
+/** Poll a single SFX generation by task_id until COMPLETED or FAILED */
+export function useSoundPoll(taskId: string | null) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["sound", taskId],
+    queryFn: () => api.get<SoundResponse>(`/sound_generator/?task_id=${taskId}`),
+    enabled: !!taskId,
+    staleTime: 0,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "COMPLETED" || status === "FAILED" ? false : 10_000;
+    },
   });
 }
 
@@ -55,7 +70,7 @@ export function useRemix() {
   return useMutation({
     mutationFn: (body: RemixCreate) =>
       api.post<MusicResponse>("/music/remix", body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"], refetchType: "none" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"] }),
   });
 }
 

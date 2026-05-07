@@ -9,18 +9,44 @@ import { VariationCard } from "@/components/generate/variation-card";
 import { PromptBar } from "@/components/generate/prompt-bar";
 import { StylePicker } from "@/components/generate/style-picker";
 import { HistoryPanel } from "@/components/generate/history-panel";
-import { useGenerateMusic, useGenerateSound } from "@/lib/api/generations";
+import { useGenerateMusic, useGenerateSound, useSoundPoll } from "@/lib/api/generations";
 import { useDownloadPoll } from "@/lib/api/library";
+import { useQuickIdea, useEnhancePrompt } from "@/lib/api/prompt";
 import type { TrackItem } from "@/lib/api/library";
+import type { SoundResponse } from "@/lib/api/generations";
 import type { components } from "@/lib/types";
 
 type GenTab = "Song" | "Music" | "Sound FX";
 type MusicType = components["schemas"]["MusicType"];
 
+const QUICK_IDEA_FALLBACK: Record<GenTab, string> = {
+  Song: "a song",
+  Music: "music",
+  "Sound FX": "a sound effect",
+};
+
 const TAB_MUSIC_TYPE: Record<"Song" | "Music", MusicType> = {
   Song: "vocal",
   Music: "music",
 };
+
+function adaptSoundResponse(s: SoundResponse): TrackItem {
+  return {
+    id: s.task_id,
+    project_id: s.project_id,
+    type: "sfx",
+    task_id: s.task_id,
+    conversion_id: s.conversion_id ?? null,
+    status: s.status,
+    audio_url: s.audio_url ?? null,
+    prompt: null,
+    music_style: null,
+    title: null,
+    duration: null,
+    album_cover_path: null,
+    generated_lyrics: null,
+  };
+}
 
 export default function GeneratePage() {
   const [tab, setTab] = useState<GenTab>("Music");
@@ -28,20 +54,28 @@ export default function GeneratePage() {
   const [lyrics, setLyrics] = useState("");
   const [included, setIncluded] = useState(["Cinematic", "Orchestral"]);
   const [excluded, setExcluded] = useState(["Electronic"]);
+  const [sfxLength, setSfxLength] = useState<number>(10);
 
   // Generation state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [taskId, setTaskId] = useState<string | null>(null);
+  const [isSfxMode, setIsSfxMode] = useState(false);
   const [progress, setProgress] = useState(0);
   const [completedTracks, setCompletedTracks] = useState<TrackItem[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const queryClient = useQueryClient();
   const generateMusic = useGenerateMusic();
   const generateSound = useGenerateSound();
-  const { data: pollData } = useDownloadPoll(taskId);
+  // Music poll: only active when NOT in SFX mode
+  const { data: musicPollData } = useDownloadPoll(isSfxMode ? null : taskId);
+  // SFX poll: only active when in SFX mode — uses dedicated endpoint
+  const { data: sfxPollData } = useSoundPoll(isSfxMode ? taskId : null);
+  const quickIdea = useQuickIdea();
+  const enhancePrompt = useEnhancePrompt();
 
   // isSubmitting bridges the gap between mutateAsync resolving and setTaskId(tid) applying
   const generating = isSubmitting || (!!taskId && completedTracks.length === 0 && !errorMsg);
@@ -61,15 +95,30 @@ export default function GeneratePage() {
     };
   }, [generating, taskId]);
 
-  // Check poll data for completion — backend may return results in tracks or sounds
+  // 500-second hard timeout — if still generating, stop polling and show error
   useEffect(() => {
-    if (!pollData) return;
-    const allItems = [...(pollData.tracks ?? []), ...(pollData.sounds ?? [])];
+    if (!taskId || completedTracks.length > 0 || errorMsg) return;
+    pollTimeout.current = setTimeout(() => {
+      if (progressInterval.current) clearInterval(progressInterval.current);
+      setProgress(0);
+      setTaskId(null);
+      setErrorMsg("Generation timed out. Please refresh the page and try again.");
+    }, 500_000);
+    return () => {
+      if (pollTimeout.current) clearTimeout(pollTimeout.current);
+    };
+  }, [taskId, completedTracks.length, errorMsg]);
+
+  // Music completion — backend returns results spread across tracks + sounds
+  useEffect(() => {
+    if (!musicPollData) return;
+    const allItems = [...(musicPollData.tracks ?? []), ...(musicPollData.sounds ?? [])];
     const allDone =
       allItems.length > 0 &&
       allItems.every((t) => t.status === "COMPLETED" || t.status === "FAILED");
     if (allDone) {
       if (progressInterval.current) clearInterval(progressInterval.current);
+      if (pollTimeout.current) clearTimeout(pollTimeout.current);
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setProgress(100);
       setCompletedTracks(allItems.filter((t) => t.status === "COMPLETED"));
@@ -77,15 +126,36 @@ export default function GeneratePage() {
     }
   // queryClient is stable from useQueryClient, safe to omit
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pollData]);
+  }, [musicPollData]);
+
+  // SFX completion — single SoundResponse from dedicated endpoint
+  useEffect(() => {
+    if (!sfxPollData) return;
+    const done = sfxPollData.status === "COMPLETED" || sfxPollData.status === "FAILED";
+    if (!done) return;
+    if (progressInterval.current) clearInterval(progressInterval.current);
+    if (pollTimeout.current) clearTimeout(pollTimeout.current);
+    // eslint-disable-next-line
+    setProgress(100);
+    if (sfxPollData.status === "COMPLETED") {
+      setCompletedTracks([adaptSoundResponse(sfxPollData)]);
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+    } else {
+      setTaskId(null);
+      setErrorMsg("Sound FX generation failed. Please try again.");
+    }
+  // queryClient is stable, safe to omit
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sfxPollData]);
 
   const handleGenerate = async () => {
     const text = prompt.trim() || lyrics.trim();
-    if (!text) return;
+    if (!text || generating) return;
     setIsSubmitting(true);
     setErrorMsg(null);
     setCompletedTracks([]);
     setTaskId(null);
+    setIsSfxMode(false);
     setProgress(0);
 
     try {
@@ -95,8 +165,10 @@ export default function GeneratePage() {
         const result = await generateSound.mutateAsync({
           project_id: crypto.randomUUID(),
           prompt: text,
+          audio_length: sfxLength,
         });
         tid = result.task_id ?? null;
+        setIsSfxMode(true);
       } else {
         const result = await generateMusic.mutateAsync({
           project_id: crypto.randomUUID(),
@@ -117,6 +189,7 @@ export default function GeneratePage() {
       setTaskId(tid);
     } catch (err: unknown) {
       if (progressInterval.current) clearInterval(progressInterval.current);
+      if (pollTimeout.current) clearTimeout(pollTimeout.current);
       setProgress(0);
       const status = (err as { status?: number })?.status;
       setErrorMsg(
@@ -127,6 +200,18 @@ export default function GeneratePage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleQuickIdea = async () => {
+    const result = await quickIdea.mutateAsync(prompt.trim() || QUICK_IDEA_FALLBACK[tab]);
+    setPrompt(result.prompt);
+  };
+
+  const handleEnhance = async () => {
+    const text = prompt.trim();
+    if (!text) return;
+    const result = await enhancePrompt.mutateAsync({ prompt: text });
+    setPrompt(result.prompt);
   };
 
   const toggleInclude = (tag: string) =>
@@ -191,7 +276,56 @@ export default function GeneratePage() {
               onPromptChange={setPrompt}
               generating={generating}
               onGenerate={handleGenerate}
+              onQuickIdea={handleQuickIdea}
+              onEnhance={handleEnhance}
+              quickIdeaLoading={quickIdea.isPending}
+              enhanceLoading={enhancePrompt.isPending}
             />
+            {tab === "Sound FX" && (
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-[10px] font-medium text-[color:var(--aw-text-3)] tracking-[0.07em] uppercase w-16 flex-shrink-0">
+                  Length
+                </span>
+                <div className="flex items-center gap-[5px] flex-wrap">
+                  {[5, 10, 15, 30].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setSfxLength(s)}
+                      className="px-3 py-[4px] rounded-[20px] text-[11px] font-medium border transition-colors duration-150 cursor-pointer"
+                      style={{
+                        background: sfxLength === s ? "rgba(232,160,85,0.15)" : "rgba(255,255,255,0.04)",
+                        borderColor: sfxLength === s ? "var(--aw-accent)" : "var(--aw-border)",
+                        color: sfxLength === s ? "var(--aw-accent)" : "var(--aw-text-2)",
+                      }}
+                    >
+                      {s}s
+                    </button>
+                  ))}
+                  <div
+                    className="flex items-center gap-1 px-2 py-[3px] rounded-[20px] border"
+                    style={{
+                      background: ![5, 10, 15, 30].includes(sfxLength) ? "rgba(232,160,85,0.15)" : "rgba(255,255,255,0.04)",
+                      borderColor: ![5, 10, 15, 30].includes(sfxLength) ? "var(--aw-accent)" : "var(--aw-border)",
+                    }}
+                  >
+                    <input
+                      type="number"
+                      min={1}
+                      max={300}
+                      value={![5, 10, 15, 30].includes(sfxLength) ? sfxLength : ""}
+                      placeholder="Custom"
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value, 10);
+                        if (!isNaN(v) && v >= 1 && v <= 300) setSfxLength(v);
+                      }}
+                      className="w-[52px] bg-transparent border-none outline-none text-[11px] text-center"
+                      style={{ color: ![5, 10, 15, 30].includes(sfxLength) ? "var(--aw-accent)" : "var(--aw-text-3)" }}
+                    />
+                    <span className="text-[10px] text-[color:var(--aw-text-3)]">s</span>
+                  </div>
+                </div>
+              </div>
+            )}
             <StylePicker
               tab={tab}
               included={included}
