@@ -68,6 +68,10 @@ export const icons = {
   tag: ["M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z", "M7 7h.01"],
   arrowUp: ["M12 19V5", "M5 12l7-7 7 7"],
   send: "M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z",
+  image: [
+    "M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2z",
+    "M8.5 13.5l2.5 3 3.5-4.5 4.5 6H5l3.5-4.5z",
+  ],
 } satisfies Record<string, string | string[]>;
 
 export type IconName = keyof typeof icons;

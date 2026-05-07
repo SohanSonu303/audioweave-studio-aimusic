@@ -12,6 +12,7 @@ type UseWaveSurferOptions = {
   barWidth?: number;
   barGap?: number;
   progressColor?: string;
+  waveColor?: string;
   // When true, URL sources use placeholder peaks instead of fetching + decoding
   // the whole file. Playback still works via the <audio> element (streaming).
   // Use this for large remote files to avoid freezing the main thread.
@@ -38,6 +39,7 @@ export function useWaveSurfer({
   barWidth = 2,
   barGap = 1,
   progressColor,
+  waveColor,
   skipDecode = false,
 }: UseWaveSurferOptions) {
   const [wavesurfer, setWavesurfer] = useState<WaveSurfer | null>(null);
@@ -71,7 +73,7 @@ export function useWaveSurfer({
 
     const ws = WaveSurfer.create({
       container: containerRef.current,
-      waveColor: "rgba(255,255,255,0.15)",
+      waveColor: waveColor || "rgba(255,255,255,0.15)",
       progressColor: progressColor || accentColor,
       cursorColor: accentColor,
       barWidth,
@@ -102,7 +104,7 @@ export function useWaveSurfer({
     return () => {
       ws.destroy();
     };
-  }, [containerRef, enableRegions, height, barWidth, barGap, progressColor]);
+  }, [containerRef, enableRegions, height, barWidth, barGap, progressColor, waveColor]);
 
   useEffect(() => {
     if (!wavesurfer || !audioSrc) return;
