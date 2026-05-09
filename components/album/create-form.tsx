@@ -16,11 +16,10 @@ const schema = z
     script: z.string().min(1, "Script is required"),
     songs: z.number().int().min(0).max(20),
     background_scores: z.number().int().min(0).max(20),
-    instrumentals: z.number().int().min(0).max(20),
   })
   .refine(
     (d) => {
-      const total = d.songs + d.background_scores + d.instrumentals;
+      const total = d.songs + d.background_scores;
       return total >= 1 && total <= 20;
     },
     { message: "Total tracks must be between 1 and 20", path: ["songs"] },
@@ -54,15 +53,13 @@ export function CreateAlbumForm() {
       script: draftScript,
       songs: draftCounts.songs,
       background_scores: draftCounts.background_scores,
-      instrumentals: draftCounts.instrumentals,
     },
   });
 
   const songs = watch("songs");
   const bgScores = watch("background_scores");
-  const instrumentals = watch("instrumentals");
   const script = watch("script");
-  const total = (songs || 0) + (bgScores || 0) + (instrumentals || 0);
+  const total = (songs || 0) + (bgScores || 0);
 
   /* Persist drafts back to Zustand on change */
   useEffect(() => {
@@ -73,9 +70,8 @@ export function CreateAlbumForm() {
     setDraftCounts({
       songs: songs || 0,
       background_scores: bgScores || 0,
-      instrumentals: instrumentals || 0,
     });
-  }, [songs, bgScores, instrumentals, setDraftCounts]);
+  }, [songs, bgScores, setDraftCounts]);
 
   /* ── Submit ── */
   const onSubmit = async (data: FormValues) => {
@@ -87,7 +83,7 @@ export function CreateAlbumForm() {
         script: data.script,
         songs: data.songs,
         background_scores: data.background_scores,
-        instrumentals: data.instrumentals,
+        instrumentals: 0,
       });
 
       // Navigate to the new album
@@ -139,7 +135,7 @@ export function CreateAlbumForm() {
           Track Composition
         </label>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <CountInput
             label="Songs"
             description="Vocal tracks with lyrics"
@@ -153,13 +149,6 @@ export function CreateAlbumForm() {
             color="var(--aw-purple)"
             value={bgScores}
             onChange={(v) => setValue("background_scores", v, { shouldValidate: true })}
-          />
-          <CountInput
-            label="Instrumentals"
-            description="Structured, no vocals"
-            color="var(--aw-blue)"
-            value={instrumentals}
-            onChange={(v) => setValue("instrumentals", v, { shouldValidate: true })}
           />
         </div>
 

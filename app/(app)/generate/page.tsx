@@ -52,8 +52,8 @@ export default function GeneratePage() {
   const [tab, setTab] = useState<GenTab>("Music");
   const [prompt, setPrompt] = useState("");
   const [lyrics, setLyrics] = useState("");
-  const [included, setIncluded] = useState(["Cinematic", "Orchestral"]);
-  const [excluded, setExcluded] = useState(["Electronic"]);
+  const [included, setIncluded] = useState<string[]>([]);
+  const [excluded, setExcluded] = useState<string[]>([]);
   const [sfxLength, setSfxLength] = useState<number>(10);
 
   // Generation state
@@ -150,7 +150,7 @@ export default function GeneratePage() {
 
   const handleGenerate = async () => {
     const text = prompt.trim() || lyrics.trim();
-    if (!text || generating) return;
+    if (!text || generating || prompt.length > 280) return;
     setIsSubmitting(true);
     setErrorMsg(null);
     setCompletedTracks([]);
@@ -174,7 +174,7 @@ export default function GeneratePage() {
           project_id: crypto.randomUUID(),
           type: TAB_MUSIC_TYPE[tab],
           prompt: text,
-          music_style: included.length > 0 ? included.join(", ") : undefined,
+          music_style: included.join(", "),
           lyrics: tab === "Song" && lyrics.trim() ? lyrics.trim() : undefined,
           make_instrumental: tab === "Music",
           vocal_only: false,

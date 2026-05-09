@@ -13,7 +13,19 @@ export const NAV = [
 ] as const;
 
 export const STYLE_TAGS: Record<string, string[]> = {
-  Song: ["Pop", "R&B", "Hip-Hop", "Ballad", "Country", "Folk", "Indie", "Soul", "Jazz", "Blues", "Rock", "Punk", "Metal", "Gospel", "Latin", "K-Pop", "Alternative", "Grunge", "Emo", "Reggae", "Afrobeats", "Disco", "Funk", "New Wave", "Shoegaze", "Dream Pop", "Classic Rock", "Acoustic"],
+  Song: [
+    // Mood / Emotion
+    "Uplifting", "Melancholic", "Romantic", "Dark", "Hopeful", "Bittersweet",
+    "Nostalgic", "Dreamy", "Playful", "Intense", "Euphoric", "Rebellious",
+    // Vocal Character
+    "Powerful Vocals", "Soft Vocals", "Raspy Voice", "Falsetto", "Harmonized", "Belting",
+    // Production Feel
+    "Acoustic", "Lo-Fi", "Stripped Down", "Lush Production", "Raw Energy", "Layered",
+    // Energy / Tempo
+    "Uptempo", "Slow Burn", "Anthemic", "Dance-Ready",
+    // Instrumentation
+    "Guitar-Driven", "Piano-Led", "Beat-Driven", "String Arrangement",
+  ],
   Music: ["Cinematic", "Orchestral", "Ambient", "Lo-Fi", "Electronic", "House", "Techno", "Drum & Bass", "Synthwave", "Classical", "Jazz", "Trap", "Future Bass", "Chillout", "Trance", "Dubstep", "Deep House", "Vaporwave", "Afro House", "Nu-Disco", "Experimental", "Film Score", "Video Game", "Minimal", "Melodic Techno", "Breakbeat"],
   "Sound FX": ["Nature", "Urban", "Sci-Fi", "Horror", "Comedy", "Foley", "Transitions", "UI Sounds", "Impact", "Ambience", "Mechanical", "Organic", "Retro", "Magic", "Weather", "Water", "Fire", "Crowd", "Industrial", "Glitch", "Space", "Whoosh", "Riser", "Stinger"],
 };

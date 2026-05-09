@@ -36,12 +36,17 @@ export function PromptBar({
 }: PromptBarProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const overLimit = prompt.length > 280;
   const pillDisabled = generating || quickIdeaLoading || enhanceLoading;
 
   return (
     <div
-      className="rounded-[16px] p-[14px_18px] border border-[color:var(--aw-border)]"
-      style={{ background: "var(--aw-card)", boxShadow: "var(--shadow-card)" }}
+      className="rounded-[16px] p-[14px_18px] border transition-colors duration-150"
+      style={{
+        background: "var(--aw-card)",
+        boxShadow: "var(--shadow-card)",
+        borderColor: overLimit ? "rgba(224,80,80,0.7)" : "var(--aw-border)",
+      }}
     >
       <textarea
         ref={textareaRef}
@@ -52,8 +57,13 @@ export function PromptBar({
         }}
         placeholder={PLACEHOLDERS[tab]}
         rows={4}
-        className="w-full bg-transparent border-none outline-none resize-y min-h-[64px] text-[color:var(--aw-text)] text-[14px] leading-[1.6] tracking-[0.01em] mb-[10px] placeholder:text-[color:var(--aw-text-3)]"
+        className="w-full bg-transparent border-none outline-none resize-y min-h-[64px] text-[color:var(--aw-text)] text-[14px] leading-[1.6] tracking-[0.01em] mb-[6px] placeholder:text-[color:var(--aw-text-3)]"
       />
+      {overLimit && (
+        <p className="text-[11px] font-medium mb-[8px]" style={{ color: "rgba(224,80,80,0.9)" }}>
+          Prompt is {prompt.length} characters — please keep it under 280.
+        </p>
+      )}
       <div className="flex items-center gap-2">
         {/* Finetune (Song only) */}
         {tab === "Song" && (
@@ -111,15 +121,23 @@ export function PromptBar({
 
         {/* Generate button */}
         <div className="ml-auto flex items-center gap-2">
+          {prompt.length > 200 && (
+            <span
+              className="text-[11px] font-medium tabular-nums"
+              style={{ color: overLimit ? "rgba(224,80,80,0.9)" : "var(--aw-text-3)" }}
+            >
+              {prompt.length}/280
+            </span>
+          )}
           <span className="text-[11px] text-[color:var(--aw-text-3)]">⌘↵</span>
           <button
             onClick={onGenerate}
-            disabled={generating}
+            disabled={generating || overLimit}
             className="flex items-center gap-[6px] px-5 py-2 rounded-[var(--radius-pill)] text-[13px] font-semibold border-none cursor-pointer transition-all duration-200"
             style={{
-              background: generating ? "rgba(232,160,85,0.2)" : "var(--aw-accent)",
-              color: generating ? "var(--aw-accent)" : "#000",
-              cursor: generating ? "not-allowed" : "pointer",
+              background: (generating || overLimit) ? "rgba(232,160,85,0.2)" : "var(--aw-accent)",
+              color: (generating || overLimit) ? "var(--aw-accent)" : "#000",
+              cursor: (generating || overLimit) ? "not-allowed" : "pointer",
             }}
           >
             {generating ? (

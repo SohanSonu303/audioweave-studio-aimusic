@@ -16,7 +16,6 @@ export interface TrackEdit {
 export interface DraftCounts {
   songs: number;
   background_scores: number;
-  instrumentals: number;
 }
 
 interface AlbumStore {
@@ -50,7 +49,6 @@ interface AlbumStore {
 const DEFAULT_COUNTS: DraftCounts = {
   songs: 2,
   background_scores: 1,
-  instrumentals: 0,
 };
 
 export const useAlbumStore = create<AlbumStore>((set) => ({
