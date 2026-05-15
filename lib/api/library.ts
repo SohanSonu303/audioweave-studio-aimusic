@@ -9,7 +9,7 @@ export interface TrackItem {
   type: "music" | "vocal" | "sfx" | "stem" | string;
   task_id: string | null;
   conversion_id: string | null;
-  status: "COMPLETED" | "FAILED" | "pending" | "processing" | string;
+  status: "COMPLETED" | "FAILED" | "QUEUED" | "IN_QUEUE" | "pending" | "processing" | string;
   audio_url: string | null;
   prompt: string | null;
   music_style: string | null;
@@ -34,12 +34,20 @@ export interface LibraryResponse {
   separations: unknown[];
 }
 
+const IN_PROGRESS_STATUSES = new Set(["QUEUED", "IN_QUEUE", "pending", "processing"]);
+
 /** Fetch the user's full library (all generated tracks) */
 export function useLibrary() {
   const api = useApi();
   return useQuery({
     queryKey: ["library"],
     queryFn: () => api.get<LibraryResponse>("/library/"),
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      const allItems = [...(data?.tracks ?? []), ...(data?.sounds ?? [])];
+      const hasInProgress = allItems.some((t) => IN_PROGRESS_STATUSES.has(t.status));
+      return hasInProgress ? 30_000 : false;
+    },
   });
 }
 

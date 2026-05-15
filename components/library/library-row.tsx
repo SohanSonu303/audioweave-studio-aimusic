@@ -4,9 +4,12 @@ import { memo, useMemo } from "react";
 import { Icon, icons } from "@/components/ui/icon";
 import { Waveform } from "@/components/audio/waveform";
 import { TrackThumbnail } from "@/components/audio/track-thumbnail";
+import { Skeleton } from "@/components/ui/skeleton";
 import { usePlayerStore } from "@/stores/player-store";
 import type { TrackItem } from "@/lib/api/library";
 import { formatTime, downloadUrl } from "@/lib/utils";
+
+const IN_PROGRESS_STATUSES = new Set(["QUEUED", "IN_QUEUE", "pending", "processing"]);
 
 const GRID_STYLE = { gridTemplateColumns: "32px 1fr 1fr 180px 60px 80px 80px" } as const;
 
@@ -29,7 +32,33 @@ interface LibraryRowProps {
   index: number;
 }
 
-function LibraryRowInner({ item, index }: LibraryRowProps) {
+function LibrarySkeletonRow() {
+  return (
+    <div
+      className="grid items-center gap-0 px-5 py-[7px] border-b border-[rgba(255,255,255,0.04)]"
+      style={GRID_STYLE}
+    >
+      <Skeleton className="w-[26px] h-[26px] rounded-full" />
+      <div className="flex items-center gap-[10px] min-w-0">
+        <Skeleton className="w-[38px] h-[38px] rounded-[6px] flex-shrink-0" />
+        <div className="flex flex-col gap-[5px] min-w-0 flex-1">
+          <Skeleton className="h-[13px] w-[140px] rounded-[4px]" />
+          <Skeleton className="h-[11px] w-[80px] rounded-[4px]" />
+        </div>
+      </div>
+      <Skeleton className="h-[11px] w-[100px] rounded-[4px]" />
+      <Skeleton className="h-[26px] w-full rounded-[4px] mr-2" />
+      <Skeleton className="h-[12px] w-[30px] rounded-[4px] mx-auto" />
+      <Skeleton className="h-[12px] w-[24px] rounded-[4px] mx-auto" />
+      <div className="flex items-center gap-[6px] justify-end">
+        <Skeleton className="w-[14px] h-[14px] rounded-[3px]" />
+        <Skeleton className="w-[14px] h-[14px] rounded-[3px]" />
+      </div>
+    </div>
+  );
+}
+
+function LibraryTrackRow({ item, index }: LibraryRowProps) {
   const playing = usePlayerStore((s) => s.currentTrack?.id === item.id && s.isPlaying);
   const toggle = usePlayerStore((s) => s.toggle);
   const color = TYPE_COLORS[item.type] ?? "#e8a055";
@@ -56,7 +85,6 @@ function LibraryRowInner({ item, index }: LibraryRowProps) {
   };
 
   const musicStyle = item.music_style ?? "";
-
   const durationStr = item.duration ? formatTime(Math.round(item.duration)) : "—";
 
   return (
@@ -125,6 +153,11 @@ function LibraryRowInner({ item, index }: LibraryRowProps) {
       </div>
     </div>
   );
+}
+
+function LibraryRowInner({ item, index }: LibraryRowProps) {
+  if (IN_PROGRESS_STATUSES.has(item.status)) return <LibrarySkeletonRow />;
+  return <LibraryTrackRow item={item} index={index} />;
 }
 
 export const LibraryRow = memo(LibraryRowInner);

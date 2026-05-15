@@ -37,10 +37,12 @@ export default function LibraryPage() {
   const { data, isLoading } = useLibrary();
   const currentTrack = usePlayerStore((s) => s.currentTrack);
 
+  const IN_PROGRESS_STATUSES = new Set(["QUEUED", "IN_QUEUE", "pending", "processing"]);
+
   const allTracks: TrackItem[] = [
     ...(data?.tracks ?? []),
     ...(data?.sounds ?? []),
-  ].filter((t) => t.status === "COMPLETED");
+  ].filter((t) => t.status === "COMPLETED" || IN_PROGRESS_STATUSES.has(t.status));
 
   const filtered = allTracks.filter((t) => {
     const typeLabel = TYPE_LABEL[t.type] ?? t.type;
