@@ -187,8 +187,8 @@ function Section({
   return (
     <section
       id={id}
-      className={className}
-      style={{ padding: "100px 40px", maxWidth: 1280, margin: "0 auto", ...style }}
+      className={`px-5 py-12 md:px-10 md:py-[100px] max-w-[1280px] mx-auto ${className || ""}`}
+      style={style}
     >
       {children}
     </section>
@@ -201,22 +201,13 @@ function Section({
 function Nav({ scrolled }: { scrolled: boolean }) {
   return (
     <nav
+      className="fixed top-[32px] md:top-0 left-0 right-0 z-[100] px-5 py-4 md:px-10 md:py-[18px] flex items-center justify-between md:justify-start md:gap-10 transition-all duration-300"
       style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 100,
-        padding: "18px 40px",
-        display: "flex",
-        alignItems: "center",
-        gap: 40,
         backdropFilter: scrolled ? "blur(16px)" : "blur(8px)",
         background: scrolled ? "rgba(10,10,10,0.8)" : "rgba(10,10,10,0.55)",
         borderBottom: scrolled
           ? "1px solid rgba(255,255,255,0.07)"
           : "1px solid transparent",
-        transition: "all 0.3s",
       }}
     >
       {/* Logo */}
@@ -252,7 +243,7 @@ function Nav({ scrolled }: { scrolled: boolean }) {
       </Link>
 
       {/* Nav links */}
-      <div style={{ display: "flex", gap: 28, flex: 1 }}>
+      <div className="hidden md:flex gap-7 flex-1">
         {["Features", "How it works", "Pricing", "Showcase"].map((label) => (
           <a
             key={label}
@@ -274,7 +265,7 @@ function Nav({ scrolled }: { scrolled: boolean }) {
       </div>
 
       {/* CTAs */}
-      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+      <div className="flex items-center gap-3">
         <Link
           href="/sign-in"
           style={{
@@ -326,17 +317,7 @@ function Hero() {
 
   return (
     <section
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "140px 40px 80px",
-        textAlign: "center",
-        position: "relative",
-        overflow: "hidden",
-      }}
+      className="min-h-[100vh] flex flex-col items-center justify-center px-5 pt-[140px] pb-10 md:px-10 md:pb-[80px] text-center relative overflow-hidden"
     >
       {/* Background radial gradients */}
       <div
@@ -399,11 +380,8 @@ function Hero() {
 
       {/* CTA buttons */}
       <div
+        className="flex flex-wrap items-center justify-center gap-3 mb-12"
         style={{
-          display: "flex",
-          gap: 12,
-          alignItems: "center",
-          marginBottom: 48,
           animation: "heroIn 1.2s cubic-bezier(0.22,1,0.36,1) 0.3s both",
         }}
       >
@@ -488,15 +466,8 @@ function Hero() {
             }}
           />
         </p>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginTop: 14,
-          }}
-        >
-          <div style={{ display: "flex", gap: 6 }}>
+        <div className="flex flex-wrap justify-between items-center mt-4 gap-3">
+          <div className="flex flex-wrap gap-2">
             {[
               { label: "★ Enhance", active: false },
               { label: "✦ Quick Idea", active: false },
@@ -540,18 +511,12 @@ function Hero() {
 
       {/* Waveform player mock */}
       <div
+        className="w-full max-w-[640px] bg-[#161616e6] border border-white/10 rounded-[14px] p-4 md:px-[18px] md:py-[14px] backdrop-blur-md"
         style={{
-          width: "100%",
-          maxWidth: 640,
-          background: "rgba(22,22,22,0.9)",
-          border: "1px solid rgba(255,255,255,0.09)",
-          borderRadius: 14,
-          padding: "14px 18px",
           animation: "heroIn 1.2s cubic-bezier(0.22,1,0.36,1) 0.55s both",
-          backdropFilter: "blur(16px)",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-3 gap-3 md:gap-0">
           <div style={{ textAlign: "left" }}>
             <div style={{ fontFamily: "var(--font-display)", fontSize: 15, color: "var(--aw-text)", letterSpacing: "-0.01em" }}>
               Thorn Crown
@@ -601,7 +566,7 @@ function Hero() {
           ))}
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+        <div className="flex flex-wrap justify-between items-center mt-2 gap-2">
           <div style={{ display: "flex", gap: 14 }}>
             {["92 BPM", "A minor"].map((tag) => (
               <span key={tag} style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--aw-text-2)" }}>
@@ -650,14 +615,7 @@ function TrustStrip() {
       }}
     >
       <div
-        style={{
-          maxWidth: 1280,
-          margin: "0 auto",
-          display: "flex",
-          alignItems: "center",
-          gap: 40,
-          justifyContent: "center",
-        }}
+        className="max-w-[1280px] mx-auto flex flex-wrap items-center justify-center gap-6 md:gap-10"
       >
         <span
           style={{
@@ -889,8 +847,8 @@ function ThreePillars() {
   return (
     <section
       id="features"
+      className="px-5 py-12 md:px-10 md:py-[100px]"
       style={{
-        padding: "100px 40px",
         borderTop: "1px solid rgba(255,255,255,0.07)",
         borderBottom: "1px solid rgba(255,255,255,0.07)",
         background: "var(--aw-surface)",
@@ -910,7 +868,7 @@ function ThreePillars() {
           </div>
         </Reveal>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {PILLARS.map((pillar, idx) => (
             <PillarCard key={pillar.title} pillar={pillar} idx={idx} />
           ))}
@@ -1011,14 +969,11 @@ function FeatureSection({
   return (
     <section
       id={id}
-      style={{ padding: "120px 40px", maxWidth: 1280, margin: "0 auto" }}
+      className="px-5 py-16 md:px-10 md:py-[120px] max-w-[1280px] mx-auto"
     >
       <div
+        className="grid grid-cols-1 md:grid-cols-[1fr_1.1fr] gap-10 md:gap-20 items-center"
         style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1.1fr",
-          gap: 80,
-          alignItems: "center",
           direction: reverse ? "rtl" : "ltr",
         }}
       >
@@ -1870,8 +1825,8 @@ function Workflow() {
   return (
     <section
       id="how-it-works"
+      className="px-5 py-12 md:px-10 md:py-[100px]"
       style={{
-        padding: "100px 40px",
         borderTop: "1px solid rgba(255,255,255,0.07)",
         background: "var(--aw-surface)",
       }}
@@ -1888,13 +1843,7 @@ function Workflow() {
           </div>
         </Reveal>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 20,
-          }}
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
           {WORKFLOW_STEPS.map((step, i) => (
             <Reveal key={step.num} dir="up" delay={i * 0.1}>
               <div
@@ -1964,7 +1913,7 @@ function Workflow() {
 ─────────────────────────────────────────────── */
 function Testimonial() {
   return (
-    <section style={{ padding: "100px 40px" }}>
+    <section className="px-5 py-12 md:px-10 md:py-[100px]">
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
         <Reveal>
           <div style={{ textAlign: "center", marginBottom: 16 }}>
@@ -2103,8 +2052,8 @@ function Sampler() {
   return (
     <section
       id="showcase"
+      className="px-5 py-12 md:px-10 md:py-[100px]"
       style={{
-        padding: "100px 40px",
         borderTop: "1px solid rgba(255,255,255,0.07)",
         background: "var(--aw-surface)",
       }}
@@ -2121,13 +2070,7 @@ function Sampler() {
           </div>
         </Reveal>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(5, 1fr)",
-            gap: 16,
-          }}
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {SAMPLES.map((sample, i) => {
             const isPlaying = playing === i;
             return (
@@ -2434,8 +2377,8 @@ function Pricing() {
   return (
     <section
       id="pricing"
+      className="px-5 py-12 md:px-10 md:py-[100px]"
       style={{
-        padding: "100px 40px",
         borderTop: "1px solid rgba(255,255,255,0.07)",
       }}
     >
@@ -2647,8 +2590,8 @@ function FAQ() {
   return (
     <section
       id="questions"
+      className="px-5 py-12 md:px-10 md:py-[100px]"
       style={{
-        padding: "100px 40px",
         borderTop: "1px solid rgba(255,255,255,0.07)",
         background: "var(--aw-surface)",
       }}
@@ -2868,21 +2811,14 @@ const FOOTER_LINKS = {
 function Footer() {
   return (
     <footer
+      className="px-5 pt-12 pb-8 md:px-10 md:pt-[60px] md:pb-8"
       style={{
         borderTop: "1px solid rgba(255,255,255,0.07)",
         background: "var(--aw-surface)",
-        padding: "60px 40px 32px",
       }}
     >
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1.5fr repeat(4, 1fr)",
-            gap: 40,
-            marginBottom: 50,
-          }}
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.5fr_repeat(4,1fr)] gap-10 mb-[50px]">
           {/* Brand */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
@@ -3012,6 +2948,9 @@ export function LandingPage() {
       ref={containerRef}
       style={{ minHeight: "100vh", background: "var(--aw-bg)", color: "var(--aw-text)" }}
     >
+      <div className="md:hidden fixed top-0 left-0 right-0 h-[32px] bg-[var(--aw-accent)] text-black flex items-center justify-center text-[11px] font-semibold z-[101] px-2 text-center shadow-md">
+        For best experience open through monitor or laptop.
+      </div>
       <Nav scrolled={scrolled} />
       <Hero />
       <TrustStrip />
