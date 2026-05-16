@@ -24,7 +24,7 @@ export default function SubscriptionPage() {
           </span>
         </div>
 
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
           {PLANS.map((plan) => (
             <PlanCard key={plan.id} {...plan} />
           ))}
