@@ -15,8 +15,17 @@
     "demo:render-cinematic": "npx remotion render product-demo/index.ts AudioWeaveCinematic --output out/cinematic-demo.mp4",
     "demo:render-anime": "npx remotion render product-demo/index.ts AudioWeaveAnime --output out/anime-ad.mp4",
     "demo:render-apple": "npx remotion render product-demo/index.ts AudioWeaveAppleAd --output out/apple-ad.mp4",
+    "demo:render-saas": "npx remotion render product-demo/index.ts AudioWeaveSaaS --output out/saas-ad.mp4",
     "demo:render-social1": "npx remotion render product-demo/index.ts AudioWeaveSocial1 --output out/social-1.mp4",
-    "demo:render-social2": "npx remotion render product-demo/index.ts AudioWeaveSocial2 --output out/social-2.mp4"
+    "demo:render-social2": "npx remotion render product-demo/index.ts AudioWeaveSocial2 --output out/social-2.mp4",
+    "demo:render-social1-yt": "npx remotion render product-demo/index.ts AudioWeaveSocial1YT --output out/social-1-yt.mp4",
+    "demo:render-social2-yt": "npx remotion render product-demo/index.ts AudioWeaveSocial2YT --output out/social-2-yt.mp4",
+    "demo:render-ig": "npx remotion render product-demo/index.ts AudioWeaveDemoIG --output out/demo-ig.mp4",
+    "demo:render-why-ig": "npx remotion render product-demo/index.ts AudioWeaveWhyIG --output out/why-demo-ig.mp4",
+    "demo:render-cinematic-ig": "npx remotion render product-demo/index.ts AudioWeaveCinematicIG --output out/cinematic-demo-ig.mp4",
+    "demo:render-apple-ig": "npx remotion render product-demo/index.ts AudioWeaveAppleAdIG --output out/apple-ad-ig.mp4",
+    "demo:render-social1-ig": "npx remotion render product-demo/index.ts AudioWeaveSocial1IG --output out/social-1-ig.mp4",
+    "demo:render-social2-ig": "npx remotion render product-demo/index.ts AudioWeaveSocial2IG --output out/social-2-ig.mp4"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",

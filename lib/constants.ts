@@ -2,12 +2,16 @@ import { icons } from "@/components/ui/icon";
 
 export const TOKENS_PER_ALBUM_TRACK = 300;
 
+/** `token_costs.COVER` on the backend. `/cover/options` does not return it. */
+export const TOKEN_COST_COVER = 200;
+
 export const NAV = [
   { id: "home", label: "Home", href: "/home", icon: icons.home },
   { id: "generate", label: "Generate", href: "/generate", icon: icons.bolt },
   { id: "library", label: "Library", href: "/library", icon: icons.library },
   { id: "album", label: "Album", href: "/album", icon: icons.film },
   { id: "image-to-song", label: "Image to Song", href: "/image-to-song", icon: icons.image },
+  { id: "cover", label: "Cover", href: "/cover", icon: icons.disc },
   { id: "stems", label: "Stem Separation", href: "/stems", icon: icons.scissors },
   { id: "edit", label: "Edit", href: "/edit", icon: icons.wand },
 ] as const;

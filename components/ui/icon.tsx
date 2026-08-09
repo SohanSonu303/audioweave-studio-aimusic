@@ -72,6 +72,11 @@ export const icons = {
     "M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2z",
     "M8.5 13.5l2.5 3 3.5-4.5 4.5 6H5l3.5-4.5z",
   ],
+  disc: [
+    "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z",
+    "M12 16a4 4 0 100-8 4 4 0 000 8z",
+    "M12 12.5a.5.5 0 100-1 .5.5 0 000 1z",
+  ],
 } satisfies Record<string, string | string[]>;
 
 export type IconName = keyof typeof icons;

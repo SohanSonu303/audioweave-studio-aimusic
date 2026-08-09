@@ -53,6 +53,7 @@ app/                  # Next.js App Router
   generate/           # /generate
   library/            # /library
   album/              # /album
+  cover/              # /cover — AI cover / re-recording
   stems/              # /stems
   edit/               # /edit — audio editing workspace
   subscription/       # /subscription
@@ -68,6 +69,7 @@ components/
                       # create-form, empty-state, failed-view, generate-bar, generating-view,
                       # planning-view, results-view, review-view, token-confirm-dialog,
                       # track-edit-card, track-result-card
+  cover/              # cover-upload-box, cover-config-panel, cover-status-tracker, cover-result-player
   stems/              # stems-header, track-info-bar, playback-bar, stem-row
   edit/               # tool-console, inspector-panel, playback-deck, track-header,
                       # source-waveform, result-waveform, waveform-timeline,
@@ -78,8 +80,9 @@ lib/
   api/                # React Query hooks, one file per backend resource
                       # client.ts, generations.ts, library.ts, album.ts, stems.ts, subscription.ts
                       # auto-edit.ts, edit-ops.ts, master.ts, podcast.ts, reference-match.ts
+                      # cover.ts, image-to-song.ts
   types.ts            # Shared TS types (mirror FastAPI schemas)
-  constants.ts        # STYLE_TAGS, STEMS, PLANS, NAV
+  constants.ts        # STYLE_TAGS, STEMS, PLANS, NAV, TOKEN_COST_COVER
   utils.ts            # cn(), formatTime(), getGreeting()
   audio-source-form-data.ts  # Helper: builds FormData from File or URL string
 
@@ -145,6 +148,26 @@ Script-driven multi-track album generation. Status flow: `PLANNING` → `PLANNED
 - `useAlbumProgress` polls `/album/{id}/progress` every 10 s **only while `GENERATING`** and is the single source of status during generation; it invalidates `["album", id]` when status flips out of `GENERATING`, which causes `album-detail` to re-render with the new view.
 - Adding `GENERATING` back to the planning poll, or mounting both polls in parallel, doubles backend traffic during the longest album phase.
 
+### Cover (`/cover`, `lib/api/cover.ts`)
+AI re-recording of an uploaded track. Two-pane layout mirroring `/image-to-song`: upload + result player in the main column, **Cover Config** inspector on the right, floating status pill.
+
+**The form is driven entirely by `GET /cover/options`** (`useCoverOptions`, 10 min staleTime — static server config). It returns the model enum, per-model character limits, `non_custom_prompt_max`, `max_upload_seconds`, `allowed_extensions`, and the required-field matrix. Never hardcode those limits in the UI; the fallback constants in [app/(app)/cover/page.tsx](app/(app)/cover/page.tsx) exist only for the pre-fetch render.
+
+**Two switches drive the whole form** — this matrix is the backend's, and violating it is a 422:
+
+| `custom_mode` | `instrumental` | User fills | Must be absent |
+|---|---|---|---|
+| `false` | either | `prompt` (≤ `non_custom_prompt_max`) | `style`, `title`, `negative_tags`, `vocal_gender`, all 3 weights |
+| `true` | `true` | `style`, `title` | `prompt` |
+| `true` | `false` | `style`, `title`, `prompt` | — |
+
+- **`prompt` changes meaning with the mode.** Non-custom it's a *description*; custom + vocals it is **sung verbatim as lyrics**. The label swaps between "Describe the cover" and "Lyrics to sing", with an inline warning on the latter. Don't collapse these into one label.
+- **`useCreateCover` gates every field on the switches** rather than trusting component state, so a stale value from a previous mode can never reach the backend.
+- Custom-mode extras (`negative_tags`, `vocal_gender`, `style_weight`, `weirdness_constraint`, `audio_weight`) live in the Advanced disclosure and are disabled — not hidden — outside custom mode. The three weights are `number | null`; `null` means "Auto" and is simply not sent.
+- **Status codes are mapped to copy in `coverErrorCopy`**: 422 shows the field-level detail, 413 → "Max 100 MB", 402 → upsell to `/subscription` (nothing was charged), 503 → "Try again shortly" (credits refunded). Extend that function, not the page.
+- Cost is `TOKEN_COST_COVER = 200` in [lib/constants.ts](lib/constants.ts) — `/cover/options` does **not** return it, so it is duplicated from the backend's `token_costs.COVER`. Keep in sync if the backend changes.
+- `useCoverPoll` reuses `/download/?task_id=` (cover results land in `music_metadata` like every other generation) at the standard 10 s. Results are **derived** from the poll cache, not copied into state.
+
 ### Stem Separation (`/stems`, `lib/api/stems.ts`)
 - `useSeparateStems` — uploads audio + project_id, kicks off a background job.
 - `useSeparationStatus` — polls `/separate/{taskId}` every 10 s while `PENDING` or `IN_PROGRESS`; returns 4 stem URLs on `COMPLETED`.
@@ -156,7 +179,7 @@ These were established in [performace_impro.md](performace_impro.md). Future wor
 - **Edit-store frees blob URLs on every result transition.** `freeResult(state.result)` is called inside `setSelectedOperation`, `setPrimarySource`, `setResult`, and `resetAll` in [stores/edit-store.ts](stores/edit-store.ts). Don't bypass these setters.
 - **Edit page download builds a one-shot blob URL.** [app/(app)/edit/page.tsx](app/(app)/edit/page.tsx) `handleDownload` decodes `audioB64` into a fresh URL and revokes it; do **not** reuse `result.blobUrl` for the download — the result waveform is still using it.
 - **Clerk JWT is cached for 50 s with 401-retry.** [hooks/use-api.ts](hooks/use-api.ts) holds the token in a ref. New API hooks should go through `useApi`, not call `getToken()` directly (the one exception is `useSeparateStems` which uses `fetch` for multipart upload).
-- **All polling intervals are 10 s.** Five hooks: `useGeneration`, `useAlbumPlanningPoll`, `useAlbumProgress`, `useSeparationStatus`, `useDownloadPoll`. Do not introduce shorter intervals without a coordination story.
+- **All polling intervals are 10 s.** Six hooks: `useGeneration`, `useAlbumPlanningPoll`, `useAlbumProgress`, `useSeparationStatus`, `useDownloadPoll`, `useCoverPoll`. Do not introduce shorter intervals without a coordination story. (The Cover API docs suggest 5 s; the 10 s invariant was kept deliberately — generation takes minutes.)
 - **QueryClient defaults** in [app/providers.tsx](app/providers.tsx): `staleTime: 30s`, `gcTime: 60s`, `refetchOnWindowFocus: false`, `refetchIntervalInBackground: false`. Background tabs do not poll.
 - **Library invalidation** in [lib/api/generations.ts](lib/api/generations.ts) uses default `refetchType: "active"` — only refetches when `/library` is mounted. Don't add `refetchType: "none"` (silently stale UI) or switch to `setQueryData` without matching the `LibraryResponse` shape exactly.
 - **List rows are memoized.** `LibraryRow` and `StemRow` are wrapped in `React.memo`; inline `style` objects are lifted to `useMemo`. Don't pass new object/function references through props on every render.
